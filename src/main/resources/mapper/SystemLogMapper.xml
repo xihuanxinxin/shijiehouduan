@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.shijiehouduan.dao.SystemLogDao">
+    <!-- 结果映射 -->
+    <resultMap id="BaseResultMap" type="com.example.shijiehouduan.entity.SystemLog">
+        <id column="log_id" property="logId"/>
+        <result column="user_id" property="userId"/>
+        <result column="action" property="action"/>
+        <result column="content" property="content"/>
+        <result column="ip_address" property="ipAddress"/>
+        <result column="created_at" property="createdAt"/>
+        <association property="user" javaType="com.example.shijiehouduan.entity.User">
+            <id column="user_id" property="userId"/>
+            <result column="username" property="username"/>
+            <result column="name" property="name"/>
+            <result column="role_type" property="roleType"/>
+        </association>
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        l.log_id, l.user_id, l.action, l.content, l.ip_address, l.created_at
+    </sql>
+    
+    <!-- 关联用户表的查询结果列 -->
+    <sql id="User_Column_List">
+        u.username, u.name, u.role_type
+    </sql>
+
+    <!-- 根据ID查询日志 -->
+    <select id="findById" resultMap="BaseResultMap" parameterType="java.lang.Integer">
+        SELECT
+        <include refid="Base_Column_List"/>,
+        <include refid="User_Column_List"/>
+        FROM system_logs l
+        LEFT JOIN users u ON l.user_id = u.user_id
+        WHERE l.log_id = #{logId}
+    </select>
+
+    <!-- 根据用户ID查询日志 -->
+    <select id="findByUserId" resultMap="BaseResultMap" parameterType="java.lang.Integer">
+        SELECT
+        <include refid="Base_Column_List"/>,
+        <include refid="User_Column_List"/>
+        FROM system_logs l
+        LEFT JOIN users u ON l.user_id = u.user_id
+        WHERE l.user_id = #{userId}
+        ORDER BY l.created_at DESC
+    </select>
+
+    <!-- 根据操作类型查询日志 -->
+    <select id="findByAction" resultMap="BaseResultMap" parameterType="java.lang.String">
+        SELECT
+        <include refid="Base_Column_List"/>,
+        <include refid="User_Column_List"/>
+        FROM system_logs l
+        LEFT JOIN users u ON l.user_id = u.user_id
+        WHERE l.action = #{action}
+        ORDER BY l.created_at DESC
+    </select>
+
+    <!-- 根据IP地址查询日志 -->
+    <select id="findByIpAddress" resultMap="BaseResultMap" parameterType="java.lang.String">
+        SELECT
+        <include refid="Base_Column_List"/>,
+        <include refid="User_Column_List"/>
+        FROM system_logs l
+        LEFT JOIN users u ON l.user_id = u.user_id
+        WHERE l.ip_address = #{ipAddress}
+        ORDER BY l.created_at DESC
+    </select>
+
+    <!-- 根据时间范围查询日志 -->
+    <select id="findByTimeRange" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>,
+        <include refid="User_Column_List"/>
+        FROM system_logs l
+        LEFT JOIN users u ON l.user_id = u.user_id
+        WHERE l.created_at BETWEEN #{startTime} AND #{endTime}
+        ORDER BY l.created_at DESC
+    </select>
+
+    <!-- 查询所有日志 -->
+    <select id="findAll" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>,
+        <include refid="User_Column_List"/>
+        FROM system_logs l
+        LEFT JOIN users u ON l.user_id = u.user_id
+        ORDER BY l.created_at DESC
+    </select>
+
+    <!-- 分页查询日志 -->
+    <select id="findByPage" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>,
+        <include refid="User_Column_List"/>
+        FROM system_logs l
+        LEFT JOIN users u ON l.user_id = u.user_id
+        ORDER BY l.created_at DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <!-- 新增日志 -->
+    <insert id="insert" parameterType="com.example.shijiehouduan.entity.SystemLog" useGeneratedKeys="true" keyProperty="logId">
+        INSERT INTO system_logs (
+            user_id, action, content, ip_address, created_at
+        ) VALUES (
+            #{userId}, #{action}, #{content}, #{ipAddress}, NOW()
+        )
+    </insert>
+
+    <!-- 删除日志 -->
+    <delete id="delete" parameterType="java.lang.Integer">
+        DELETE FROM system_logs
+        WHERE log_id = #{logId}
+    </delete>
+
+    <!-- 批量删除日志 -->
+    <delete id="batchDelete">
+        DELETE FROM system_logs
+        WHERE log_id IN
+        <foreach collection="logIds" item="logId" open="(" separator="," close=")">
+            #{logId}
+        </foreach>
+    </delete>
+
+    <!-- 清空指定时间之前的日志 -->
+    <delete id="deleteBeforeTime">
+        DELETE FROM system_logs
+        WHERE created_at &lt; #{endTime}
+    </delete>
+
+    <!-- 统计日志总数 -->
+    <select id="countAll" resultType="long">
+        SELECT COUNT(*)
+        FROM system_logs
+    </select>
+
+    <!-- 统计各操作类型的日志数量 -->
+    <select id="countByAction" resultType="java.util.Map">
+        SELECT 
+            action,
+            COUNT(*) as count
+        FROM system_logs
+        GROUP BY action
+        ORDER BY count DESC
+    </select>
+
+    <!-- 统计各用户的操作日志数量 -->
+    <select id="countByUser" resultType="java.util.Map">
+        SELECT 
+            l.user_id,
+            u.username,
+            u.name,
+            COUNT(*) as count
+        FROM system_logs l
+        LEFT JOIN users u ON l.user_id = u.user_id
+        GROUP BY l.user_id, u.username, u.name
+        ORDER BY count DESC
+    </select>
+
+    <!-- 统计指定时间范围内的日志数量 -->
+    <select id="countByTimeRange" resultType="long">
+        SELECT COUNT(*)
+        FROM system_logs
+        WHERE created_at BETWEEN #{startTime} AND #{endTime}
+    </select>
+</mapper> 

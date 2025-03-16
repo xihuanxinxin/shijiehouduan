@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.shijiehouduan.dao.BedDao">
+    <!-- 结果映射 -->
+    <resultMap id="BaseResultMap" type="com.example.shijiehouduan.entity.Bed">
+        <id column="bed_id" property="bedId"/>
+        <result column="room_number" property="roomNumber"/>
+        <result column="bed_number" property="bedNumber"/>
+        <result column="status" property="status"/>
+        <result column="price_per_day" property="pricePerDay"/>
+        <result column="current_patient_id" property="currentPatientId"/>
+        <association property="currentPatient" javaType="com.example.shijiehouduan.entity.Patient">
+            <id column="patient_id" property="patientId"/>
+            <result column="user_id" property="userId"/>
+            <result column="id_card" property="idCard"/>
+            <result column="birth_date" property="birthDate"/>
+            <result column="address" property="address"/>
+            <result column="emergency_contact" property="emergencyContact"/>
+            <result column="emergency_phone" property="emergencyPhone"/>
+            <association property="user" javaType="com.example.shijiehouduan.entity.User">
+                <id column="user_id" property="userId"/>
+                <result column="name" property="name"/>
+                <result column="gender" property="gender"/>
+                <result column="phone" property="phone"/>
+            </association>
+        </association>
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        b.bed_id, b.room_number, b.bed_number, b.status, b.price_per_day, b.current_patient_id
+    </sql>
+    
+    <!-- 关联患者表的查询结果列 -->
+    <sql id="Patient_Column_List">
+        p.patient_id, p.user_id, p.id_card, p.birth_date, p.address, p.emergency_contact, p.emergency_phone
+    </sql>
+    
+    <!-- 关联用户表的查询结果列 -->
+    <sql id="User_Column_List">
+        u.name, u.gender, u.phone
+    </sql>
+
+    <!-- 根据ID查询床位 -->
+    <select id="findById" resultMap="BaseResultMap" parameterType="java.lang.Integer">
+        SELECT
+        <include refid="Base_Column_List"/>,
+        <include refid="Patient_Column_List"/>,
+        <include refid="User_Column_List"/>
+        FROM beds b
+        LEFT JOIN patients p ON b.current_patient_id = p.patient_id
+        LEFT JOIN users u ON p.user_id = u.user_id
+        WHERE b.bed_id = #{bedId}
+    </select>
+
+    <!-- 查询所有床位 -->
+    <select id="findAll" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>,
+        <include refid="Patient_Column_List"/>,
+        <include refid="User_Column_List"/>
+        FROM beds b
+        LEFT JOIN patients p ON b.current_patient_id = p.patient_id
+        LEFT JOIN users u ON p.user_id = u.user_id
+        ORDER BY b.room_number, b.bed_number
+    </select>
+
+    <!-- 根据状态查询床位 -->
+    <select id="findByStatus" resultMap="BaseResultMap" parameterType="java.lang.String">
+        SELECT
+        <include refid="Base_Column_List"/>,
+        <include refid="Patient_Column_List"/>,
+        <include refid="User_Column_List"/>
+        FROM beds b
+        LEFT JOIN patients p ON b.current_patient_id = p.patient_id
+        LEFT JOIN users u ON p.user_id = u.user_id
+        WHERE b.status = #{status}
+        ORDER BY b.room_number, b.bed_number
+    </select>
+
+    <!-- 根据房间号查询床位 -->
+    <select id="findByRoomNumber" resultMap="BaseResultMap" parameterType="java.lang.String">
+        SELECT
+        <include refid="Base_Column_List"/>,
+        <include refid="Patient_Column_List"/>,
+        <include refid="User_Column_List"/>
+        FROM beds b
+        LEFT JOIN patients p ON b.current_patient_id = p.patient_id
+        LEFT JOIN users u ON p.user_id = u.user_id
+        WHERE b.room_number = #{roomNumber}
+        ORDER BY b.bed_number
+    </select>
+
+    <!-- 根据当前患者ID查询床位 -->
+    <select id="findByCurrentPatientId" resultMap="BaseResultMap" parameterType="java.lang.Integer">
+        SELECT
+        <include refid="Base_Column_List"/>,
+        <include refid="Patient_Column_List"/>,
+        <include refid="User_Column_List"/>
+        FROM beds b
+        LEFT JOIN patients p ON b.current_patient_id = p.patient_id
+        LEFT JOIN users u ON p.user_id = u.user_id
+        WHERE b.current_patient_id = #{patientId}
+    </select>
+
+    <!-- 新增床位 -->
+    <insert id="insert" parameterType="com.example.shijiehouduan.entity.Bed" useGeneratedKeys="true" keyProperty="bedId">
+        INSERT INTO beds (
+            room_number, bed_number, status, price_per_day, current_patient_id
+        ) VALUES (
+            #{roomNumber}, #{bedNumber}, #{status}, #{pricePerDay}, #{currentPatientId}
+        )
+    </insert>
+
+    <!-- 更新床位 -->
+    <update id="update" parameterType="com.example.shijiehouduan.entity.Bed">
+        UPDATE beds
+        <set>
+            <if test="roomNumber != null">room_number = #{roomNumber},</if>
+            <if test="bedNumber != null">bed_number = #{bedNumber},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="pricePerDay != null">price_per_day = #{pricePerDay},</if>
+            <if test="currentPatientId != null">current_patient_id = #{currentPatientId},</if>
+        </set>
+        WHERE bed_id = #{bedId}
+    </update>
+
+    <!-- 更新床位状态 -->
+    <update id="updateStatus">
+        UPDATE beds
+        SET status = #{status}
+        WHERE bed_id = #{bedId}
+    </update>
+
+    <!-- 分配床位给患者 -->
+    <update id="assignToPatient">
+        UPDATE beds
+        SET current_patient_id = #{patientId}
+        WHERE bed_id = #{bedId}
+    </update>
+
+    <!-- 释放床位 -->
+    <update id="release" parameterType="java.lang.Integer">
+        UPDATE beds
+        SET current_patient_id = NULL
+        WHERE bed_id = #{bedId}
+    </update>
+
+    <!-- 删除床位 -->
+    <delete id="delete" parameterType="java.lang.Integer">
+        DELETE FROM beds
+        WHERE bed_id = #{bedId}
+    </delete>
+</mapper> 

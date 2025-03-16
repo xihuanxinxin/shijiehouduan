@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.shijiehouduan.dao.UserDao">
+    <!-- 结果映射 -->
+    <resultMap id="BaseResultMap" type="com.example.shijiehouduan.entity.User">
+        <id column="user_id" property="userId"/>
+        <result column="username" property="username"/>
+        <result column="password" property="password"/>
+        <result column="name" property="name"/>
+        <result column="gender" property="gender"/>
+        <result column="phone" property="phone"/>
+        <result column="role_type" property="roleType"/>
+        <result column="status" property="status"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        user_id, username, password, name, gender, phone, role_type, status, created_at, updated_at
+    </sql>
+
+    <!-- 根据ID查询用户 -->
+    <select id="findById" resultMap="BaseResultMap" parameterType="java.lang.Integer">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM users
+        WHERE user_id = #{userId}
+    </select>
+
+    <!-- 根据用户名查询用户 -->
+    <select id="findByUsername" resultMap="BaseResultMap" parameterType="java.lang.String">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM users
+        WHERE username = #{username}
+    </select>
+
+    <!-- 用户登录 -->
+    <select id="login" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM users
+        WHERE username = #{username} AND password = #{password}
+    </select>
+
+    <!-- 查询所有用户 -->
+    <select id="findAll" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM users
+        ORDER BY user_id
+    </select>
+
+    <!-- 根据角色类型查询用户 -->
+    <select id="findByRoleType" resultMap="BaseResultMap" parameterType="java.lang.String">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM users
+        WHERE role_type = #{roleType}
+        ORDER BY user_id
+    </select>
+
+    <!-- 根据状态查询用户 -->
+    <select id="findByStatus" resultMap="BaseResultMap" parameterType="java.lang.String">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM users
+        WHERE status = #{status}
+        ORDER BY user_id
+    </select>
+
+    <!-- 根据姓名模糊查询用户 -->
+    <select id="findByNameLike" resultMap="BaseResultMap" parameterType="java.lang.String">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM users
+        WHERE name LIKE CONCAT('%', #{name}, '%')
+        ORDER BY user_id
+    </select>
+
+    <!-- 根据电话号码查询用户 -->
+    <select id="findByPhone" resultMap="BaseResultMap" parameterType="java.lang.String">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM users
+        WHERE phone = #{phone}
+    </select>
+
+    <!-- 新增用户 -->
+    <insert id="insert" parameterType="com.example.shijiehouduan.entity.User" useGeneratedKeys="true" keyProperty="userId">
+        INSERT INTO users
+        (username, password, name, gender, phone, role_type, status, created_at, updated_at)
+        VALUES
+        (#{username}, #{password}, #{name}, #{gender}, #{phone}, #{roleType}, #{status}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <!-- 更新用户 -->
+    <update id="update" parameterType="com.example.shijiehouduan.entity.User">
+        UPDATE users
+        <set>
+            <if test="username != null">username = #{username},</if>
+            <if test="password != null">password = #{password},</if>
+            <if test="name != null">name = #{name},</if>
+            <if test="gender != null">gender = #{gender},</if>
+            <if test="phone != null">phone = #{phone},</if>
+            <if test="roleType != null">role_type = #{roleType},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="updatedAt != null">updated_at = #{updatedAt},</if>
+        </set>
+        WHERE user_id = #{userId}
+    </update>
+
+    <!-- 更新用户状态 -->
+    <update id="updateStatus">
+        UPDATE users
+        SET status = #{status},
+            updated_at = NOW()
+        WHERE user_id = #{userId}
+    </update>
+
+    <!-- 删除用户 -->
+    <delete id="delete" parameterType="java.lang.Integer">
+        DELETE FROM users 
+        WHERE user_id = #{userId}
+    </delete>
+
+    <!-- 根据角色类型查询用户列表（分页） -->
+    <select id="findByRoleTypePage" resultMap="BaseResultMap">
+        SELECT 
+        <include refid="Base_Column_List" />
+        FROM users
+        WHERE role_type = #{roleType}
+        ORDER BY created_at DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+    
+    <!-- 统计指定角色类型的用户数量 -->
+    <select id="countByRoleType" resultType="long">
+        SELECT COUNT(*)
+        FROM users
+        WHERE role_type = #{roleType}
+    </select>
+    
+    <!-- 查询所有用户列表（分页） -->
+    <select id="findPage" resultMap="BaseResultMap">
+        SELECT 
+        <include refid="Base_Column_List" />
+        FROM users
+        ORDER BY created_at DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+    
+    <!-- 统计所有用户数量 -->
+    <select id="countAll" resultType="long">
+        SELECT COUNT(*)
+        FROM users
+    </select>
+    
+    <!-- 搜索用户 -->
+    <select id="search" resultMap="BaseResultMap">
+        SELECT 
+        <include refid="Base_Column_List" />
+        FROM users
+        WHERE username LIKE CONCAT('%', #{keyword}, '%')
+        OR name LIKE CONCAT('%', #{keyword}, '%')
+        OR phone LIKE CONCAT('%', #{keyword}, '%')
+        OR email LIKE CONCAT('%', #{keyword}, '%')
+        ORDER BY created_at DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+    
+    <!-- 统计搜索结果数量 -->
+    <select id="countSearch" resultType="long">
+        SELECT COUNT(*)
+        FROM users
+        WHERE username LIKE CONCAT('%', #{keyword}, '%')
+        OR name LIKE CONCAT('%', #{keyword}, '%')
+        OR phone LIKE CONCAT('%', #{keyword}, '%')
+        OR email LIKE CONCAT('%', #{keyword}, '%')
+    </select>
+</mapper> 

@@ -1,0 +1,249 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.shijiehouduan.dao.PaymentDao">
+    <!-- 结果映射 -->
+    <resultMap id="BaseResultMap" type="com.example.shijiehouduan.entity.Payment">
+        <id column="payment_id" property="paymentId"/>
+        <result column="patient_id" property="patientId"/>
+        <result column="order_type" property="orderType"/>
+        <result column="order_id" property="orderId"/>
+        <result column="amount" property="amount"/>
+        <result column="payment_method" property="paymentMethod"/>
+        <result column="payment_status" property="paymentStatus"/>
+        <result column="payment_time" property="paymentTime"/>
+        <result column="remarks" property="remarks"/>
+        <result column="created_at" property="createdAt"/>
+        <association property="patient" javaType="com.example.shijiehouduan.entity.Patient">
+            <id column="patient_id" property="patientId"/>
+            <result column="p_name" property="user.name"/>
+            <result column="p_phone" property="user.phone"/>
+        </association>
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        p.payment_id, p.patient_id, p.order_type, p.order_id, p.amount, 
+        p.payment_method, p.payment_status, p.payment_time, p.remarks, p.created_at
+    </sql>
+    
+    <!-- 关联患者表的查询结果列 -->
+    <sql id="Patient_Column_List">
+        u.name as p_name, u.phone as p_phone
+    </sql>
+
+    <!-- 根据ID查询支付记录 -->
+    <select id="findById" resultMap="BaseResultMap" parameterType="java.lang.Integer">
+        SELECT
+        <include refid="Base_Column_List"/>,
+        <include refid="Patient_Column_List"/>
+        FROM payments p
+        LEFT JOIN patients pt ON p.patient_id = pt.patient_id
+        LEFT JOIN users u ON pt.user_id = u.user_id
+        WHERE p.payment_id = #{paymentId}
+    </select>
+
+    <!-- 根据患者ID查询支付记录 -->
+    <select id="findByPatientId" resultMap="BaseResultMap" parameterType="java.lang.Integer">
+        SELECT
+        <include refid="Base_Column_List"/>,
+        <include refid="Patient_Column_List"/>
+        FROM payments p
+        LEFT JOIN patients pt ON p.patient_id = pt.patient_id
+        LEFT JOIN users u ON pt.user_id = u.user_id
+        WHERE p.patient_id = #{patientId}
+        ORDER BY p.payment_time DESC, p.created_at DESC
+    </select>
+
+    <!-- 根据订单类型和订单ID查询支付记录 -->
+    <select id="findByOrderTypeAndOrderId" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>,
+        <include refid="Patient_Column_List"/>
+        FROM payments p
+        LEFT JOIN patients pt ON p.patient_id = pt.patient_id
+        LEFT JOIN users u ON pt.user_id = u.user_id
+        WHERE p.order_type = #{orderType} AND p.order_id = #{orderId}
+        ORDER BY p.payment_time DESC, p.created_at DESC
+    </select>
+
+    <!-- 根据支付状态查询支付记录 -->
+    <select id="findByStatus" resultMap="BaseResultMap" parameterType="java.lang.String">
+        SELECT
+        <include refid="Base_Column_List"/>,
+        <include refid="Patient_Column_List"/>
+        FROM payments p
+        LEFT JOIN patients pt ON p.patient_id = pt.patient_id
+        LEFT JOIN users u ON pt.user_id = u.user_id
+        WHERE p.payment_status = #{paymentStatus}
+        ORDER BY p.payment_time DESC, p.created_at DESC
+    </select>
+
+    <!-- 根据支付方式查询支付记录 -->
+    <select id="findByPaymentMethod" resultMap="BaseResultMap" parameterType="java.lang.String">
+        SELECT
+        <include refid="Base_Column_List"/>,
+        <include refid="Patient_Column_List"/>
+        FROM payments p
+        LEFT JOIN patients pt ON p.patient_id = pt.patient_id
+        LEFT JOIN users u ON pt.user_id = u.user_id
+        WHERE p.payment_method = #{paymentMethod}
+        ORDER BY p.payment_time DESC, p.created_at DESC
+    </select>
+
+    <!-- 根据时间范围查询支付记录 -->
+    <select id="findByTimeRange" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>,
+        <include refid="Patient_Column_List"/>
+        FROM payments p
+        LEFT JOIN patients pt ON p.patient_id = pt.patient_id
+        LEFT JOIN users u ON pt.user_id = u.user_id
+        WHERE p.payment_time BETWEEN #{startTime} AND #{endTime}
+        ORDER BY p.payment_time DESC, p.created_at DESC
+    </select>
+
+    <!-- 查询所有支付记录 -->
+    <select id="findAll" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>,
+        <include refid="Patient_Column_List"/>
+        FROM payments p
+        LEFT JOIN patients pt ON p.patient_id = pt.patient_id
+        LEFT JOIN users u ON pt.user_id = u.user_id
+        ORDER BY p.payment_time DESC, p.created_at DESC
+    </select>
+
+    <!-- 分页查询支付记录 -->
+    <select id="findByPage" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>,
+        <include refid="Patient_Column_List"/>
+        FROM payments p
+        LEFT JOIN patients pt ON p.patient_id = pt.patient_id
+        LEFT JOIN users u ON pt.user_id = u.user_id
+        ORDER BY p.payment_time DESC, p.created_at DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <!-- 新增支付记录 -->
+    <insert id="insert" parameterType="com.example.shijiehouduan.entity.Payment" useGeneratedKeys="true" keyProperty="paymentId">
+        INSERT INTO payments (
+            patient_id, order_type, order_id, amount, payment_method, 
+            payment_status, payment_time, remarks, created_at
+        ) VALUES (
+            #{patientId}, #{orderType}, #{orderId}, #{amount}, #{paymentMethod}, 
+            #{paymentStatus}, #{paymentTime}, #{remarks}, #{createdAt}
+        )
+    </insert>
+
+    <!-- 更新支付记录 -->
+    <update id="update" parameterType="com.example.shijiehouduan.entity.Payment">
+        UPDATE payments
+        <set>
+            <if test="patientId != null">patient_id = #{patientId},</if>
+            <if test="orderType != null">order_type = #{orderType},</if>
+            <if test="orderId != null">order_id = #{orderId},</if>
+            <if test="amount != null">amount = #{amount},</if>
+            <if test="paymentMethod != null">payment_method = #{paymentMethod},</if>
+            <if test="paymentStatus != null">payment_status = #{paymentStatus},</if>
+            <if test="paymentTime != null">payment_time = #{paymentTime},</if>
+            <if test="remarks != null">remarks = #{remarks},</if>
+        </set>
+        WHERE payment_id = #{paymentId}
+    </update>
+
+    <!-- 更新支付状态 -->
+    <update id="updateStatus">
+        UPDATE payments
+        <set>
+            payment_status = #{paymentStatus},
+            <if test="paymentStatus == '已支付'">payment_time = NOW(),</if>
+        </set>
+        WHERE payment_id = #{paymentId}
+    </update>
+
+    <!-- 删除支付记录 -->
+    <delete id="delete" parameterType="java.lang.Integer">
+        DELETE FROM payments
+        WHERE payment_id = #{paymentId}
+    </delete>
+
+    <!-- 统计支付记录总数 -->
+    <select id="countAll" resultType="long">
+        SELECT COUNT(*)
+        FROM payments
+    </select>
+
+    <!-- 统计各支付状态的记录数 -->
+    <select id="countByStatus" resultType="java.util.Map">
+        SELECT 
+            payment_status,
+            COUNT(*) as count
+        FROM payments
+        GROUP BY payment_status
+        ORDER BY count DESC
+    </select>
+
+    <!-- 统计各支付方式的记录数 -->
+    <select id="countByPaymentMethod" resultType="java.util.Map">
+        SELECT 
+            payment_method,
+            COUNT(*) as count
+        FROM payments
+        GROUP BY payment_method
+        ORDER BY count DESC
+    </select>
+
+    <!-- 统计各订单类型的支付金额 -->
+    <select id="countAmountByOrderType" resultType="java.util.Map">
+        SELECT 
+            order_type,
+            COUNT(*) as count,
+            SUM(amount) as total_amount
+        FROM payments
+        WHERE payment_status = '已支付'
+        GROUP BY order_type
+        ORDER BY total_amount DESC
+    </select>
+
+    <!-- 统计指定时间范围内的支付金额 -->
+    <select id="countAmountByTimeRange" resultType="java.util.Map">
+        SELECT 
+            COUNT(*) as count,
+            SUM(amount) as total_amount,
+            MIN(amount) as min_amount,
+            MAX(amount) as max_amount,
+            AVG(amount) as avg_amount
+        FROM payments
+        WHERE payment_status = '已支付'
+        AND payment_time BETWEEN #{startTime} AND #{endTime}
+    </select>
+
+    <!-- 按日期统计支付金额 -->
+    <select id="countAmountByDate" resultType="java.util.Map">
+        SELECT 
+            DATE(payment_time) as payment_date,
+            COUNT(*) as count,
+            SUM(amount) as total_amount
+        FROM payments
+        WHERE payment_status = '已支付'
+        AND payment_time BETWEEN #{startDate} AND #{endDate}
+        GROUP BY payment_date
+        ORDER BY payment_date
+    </select>
+
+    <!-- 按月份统计支付金额 -->
+    <select id="countAmountByMonth" resultType="java.util.Map">
+        SELECT 
+            MONTH(payment_time) as month,
+            COUNT(*) as count,
+            SUM(amount) as total_amount
+        FROM payments
+        WHERE payment_status = '已支付'
+        AND YEAR(payment_time) = #{year}
+        GROUP BY month
+        ORDER BY month
+    </select>
+</mapper> 

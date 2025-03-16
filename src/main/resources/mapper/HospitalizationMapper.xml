@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.shijiehouduan.dao.HospitalizationDao">
+    <!-- 结果映射 -->
+    <resultMap id="BaseResultMap" type="com.example.shijiehouduan.entity.Hospitalization">
+        <id column="hospitalization_id" property="hospitalizationId"/>
+        <result column="patient_id" property="patientId"/>
+        <result column="doctor_id" property="doctorId"/>
+        <result column="admission_date" property="admissionDate"/>
+        <result column="discharge_date" property="dischargeDate"/>
+        <result column="bed_id" property="bedId"/>
+        <result column="reason" property="reason"/>
+        <result column="status" property="status"/>
+        <result column="total_fee" property="totalFee"/>
+        <result column="remarks" property="remarks"/>
+        <result column="created_at" property="createdAt"/>
+        <!-- 关联患者信息 -->
+        <association property="patient" javaType="com.example.shijiehouduan.entity.Patient">
+            <id column="patient_id" property="patientId"/>
+            <result column="p_user_id" property="userId"/>
+            <result column="p_id_card" property="idCard"/>
+            <result column="p_name" property="user.name"/>
+            <result column="p_gender" property="user.gender"/>
+            <result column="p_phone" property="user.phone"/>
+        </association>
+        <!-- 关联医生信息 -->
+        <association property="doctor" javaType="com.example.shijiehouduan.entity.Doctor">
+            <id column="doctor_id" property="doctorId"/>
+            <result column="d_user_id" property="userId"/>
+            <result column="d_specialty" property="specialty"/>
+            <result column="d_title" property="title"/>
+            <result column="d_name" property="user.name"/>
+        </association>
+        <!-- 关联床位信息 -->
+        <association property="bed" javaType="com.example.shijiehouduan.entity.Bed">
+            <id column="bed_id" property="bedId"/>
+            <result column="b_room_number" property="roomNumber"/>
+            <result column="b_bed_number" property="bedNumber"/>
+            <result column="b_status" property="status"/>
+            <result column="b_price_per_day" property="pricePerDay"/>
+        </association>
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        hospitalization_id, patient_id, doctor_id, admission_date, discharge_date, bed_id, 
+        reason, status, total_fee, remarks, created_at
+    </sql>
+
+    <!-- 根据ID查询住院记录 -->
+    <select id="findById" resultMap="BaseResultMap" parameterType="java.lang.Integer">
+        SELECT
+        h.*, 
+        p.user_id as p_user_id, p.id_card as p_id_card,
+        pu.name as p_name, pu.gender as p_gender, pu.phone as p_phone,
+        d.user_id as d_user_id, d.specialty as d_specialty, d.title as d_title,
+        du.name as d_name,
+        b.room_number as b_room_number, b.bed_number as b_bed_number, 
+        b.status as b_status, b.price_per_day as b_price_per_day
+        FROM hospitalizations h
+        LEFT JOIN patients p ON h.patient_id = p.patient_id
+        LEFT JOIN users pu ON p.user_id = pu.user_id
+        LEFT JOIN doctors d ON h.doctor_id = d.doctor_id
+        LEFT JOIN users du ON d.user_id = du.user_id
+        LEFT JOIN beds b ON h.bed_id = b.bed_id
+        WHERE h.hospitalization_id = #{hospitalizationId}
+    </select>
+
+    <!-- 根据患者ID查询住院记录列表 -->
+    <select id="findByPatientId" resultMap="BaseResultMap" parameterType="java.lang.Integer">
+        SELECT
+        h.*, 
+        p.user_id as p_user_id, p.id_card as p_id_card,
+        pu.name as p_name, pu.gender as p_gender, pu.phone as p_phone,
+        d.user_id as d_user_id, d.specialty as d_specialty, d.title as d_title,
+        du.name as d_name,
+        b.room_number as b_room_number, b.bed_number as b_bed_number, 
+        b.status as b_status, b.price_per_day as b_price_per_day
+        FROM hospitalizations h
+        LEFT JOIN patients p ON h.patient_id = p.patient_id
+        LEFT JOIN users pu ON p.user_id = pu.user_id
+        LEFT JOIN doctors d ON h.doctor_id = d.doctor_id
+        LEFT JOIN users du ON d.user_id = du.user_id
+        LEFT JOIN beds b ON h.bed_id = b.bed_id
+        WHERE h.patient_id = #{patientId}
+        ORDER BY h.admission_date DESC
+    </select>
+
+    <!-- 根据医生ID查询住院记录列表 -->
+    <select id="findByDoctorId" resultMap="BaseResultMap" parameterType="java.lang.Integer">
+        SELECT
+        h.*, 
+        p.user_id as p_user_id, p.id_card as p_id_card,
+        pu.name as p_name, pu.gender as p_gender, pu.phone as p_phone,
+        d.user_id as d_user_id, d.specialty as d_specialty, d.title as d_title,
+        du.name as d_name,
+        b.room_number as b_room_number, b.bed_number as b_bed_number, 
+        b.status as b_status, b.price_per_day as b_price_per_day
+        FROM hospitalizations h
+        LEFT JOIN patients p ON h.patient_id = p.patient_id
+        LEFT JOIN users pu ON p.user_id = pu.user_id
+        LEFT JOIN doctors d ON h.doctor_id = d.doctor_id
+        LEFT JOIN users du ON d.user_id = du.user_id
+        LEFT JOIN beds b ON h.bed_id = b.bed_id
+        WHERE h.doctor_id = #{doctorId}
+        ORDER BY h.admission_date DESC
+    </select>
+
+    <!-- 根据床位ID查询住院记录 -->
+    <select id="findByBedId" resultMap="BaseResultMap" parameterType="java.lang.Integer">
+        SELECT
+        h.*, 
+        p.user_id as p_user_id, p.id_card as p_id_card,
+        pu.name as p_name, pu.gender as p_gender, pu.phone as p_phone,
+        d.user_id as d_user_id, d.specialty as d_specialty, d.title as d_title,
+        du.name as d_name,
+        b.room_number as b_room_number, b.bed_number as b_bed_number, 
+        b.status as b_status, b.price_per_day as b_price_per_day
+        FROM hospitalizations h
+        LEFT JOIN patients p ON h.patient_id = p.patient_id
+        LEFT JOIN users pu ON p.user_id = pu.user_id
+        LEFT JOIN doctors d ON h.doctor_id = d.doctor_id
+        LEFT JOIN users du ON d.user_id = du.user_id
+        LEFT JOIN beds b ON h.bed_id = b.bed_id
+        WHERE h.bed_id = #{bedId} AND h.status = '在院'
+        LIMIT 1
+    </select>
+
+    <!-- 查询当前在院的住院记录 -->
+    <select id="findCurrentHospitalizations" resultMap="BaseResultMap">
+        SELECT
+        h.*, 
+        p.user_id as p_user_id, p.id_card as p_id_card,
+        pu.name as p_name, pu.gender as p_gender, pu.phone as p_phone,
+        d.user_id as d_user_id, d.specialty as d_specialty, d.title as d_title,
+        du.name as d_name,
+        b.room_number as b_room_number, b.bed_number as b_bed_number, 
+        b.status as b_status, b.price_per_day as b_price_per_day
+        FROM hospitalizations h
+        LEFT JOIN patients p ON h.patient_id = p.patient_id
+        LEFT JOIN users pu ON p.user_id = pu.user_id
+        LEFT JOIN doctors d ON h.doctor_id = d.doctor_id
+        LEFT JOIN users du ON d.user_id = du.user_id
+        LEFT JOIN beds b ON h.bed_id = b.bed_id
+        WHERE h.status = '在院'
+        ORDER BY h.admission_date DESC
+    </select>
+    
+    <!-- 根据状态查询住院记录列表 -->
+    <select id="findByStatus" resultMap="BaseResultMap" parameterType="java.lang.String">
+        SELECT
+        h.*, 
+        p.user_id as p_user_id, p.id_card as p_id_card,
+        pu.name as p_name, pu.gender as p_gender, pu.phone as p_phone,
+        d.user_id as d_user_id, d.specialty as d_specialty, d.title as d_title,
+        du.name as d_name,
+        b.room_number as b_room_number, b.bed_number as b_bed_number, 
+        b.status as b_status, b.price_per_day as b_price_per_day
+        FROM hospitalizations h
+        LEFT JOIN patients p ON h.patient_id = p.patient_id
+        LEFT JOIN users pu ON p.user_id = pu.user_id
+        LEFT JOIN doctors d ON h.doctor_id = d.doctor_id
+        LEFT JOIN users du ON d.user_id = du.user_id
+        LEFT JOIN beds b ON h.bed_id = b.bed_id
+        WHERE h.status = #{status}
+        ORDER BY h.admission_date DESC
+    </select>
+    
+    <!-- 添加住院记录 -->
+    <insert id="insert" parameterType="com.example.shijiehouduan.entity.Hospitalization" useGeneratedKeys="true" keyProperty="hospitalizationId">
+        INSERT INTO hospitalizations (
+            patient_id, doctor_id, admission_date, discharge_date, bed_id, 
+            reason, status, total_fee, remarks, created_at
+        ) VALUES (
+            #{patientId}, #{doctorId}, #{admissionDate}, #{dischargeDate}, #{bedId}, 
+            #{reason}, #{status}, #{totalFee}, #{remarks}, #{createdAt}
+        )
+    </insert>
+    
+    <!-- 更新住院记录 -->
+    <update id="update" parameterType="com.example.shijiehouduan.entity.Hospitalization">
+        UPDATE hospitalizations
+        <set>
+            <if test="patientId != null">patient_id = #{patientId},</if>
+            <if test="doctorId != null">doctor_id = #{doctorId},</if>
+            <if test="admissionDate != null">admission_date = #{admissionDate},</if>
+            <if test="dischargeDate != null">discharge_date = #{dischargeDate},</if>
+            <if test="bedId != null">bed_id = #{bedId},</if>
+            <if test="reason != null">reason = #{reason},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="totalFee != null">total_fee = #{totalFee},</if>
+            <if test="remarks != null">remarks = #{remarks},</if>
+        </set>
+        WHERE hospitalization_id = #{hospitalizationId}
+    </update>
+    
+    <!-- 更新住院记录状态 -->
+    <update id="updateStatus">
+        UPDATE hospitalizations
+        SET status = #{status}
+        WHERE hospitalization_id = #{hospitalizationId}
+    </update>
+    
+    <!-- 更新出院日期 -->
+    <update id="updateDischargeDate">
+        UPDATE hospitalizations
+        SET discharge_date = #{dischargeDate}
+        WHERE hospitalization_id = #{hospitalizationId}
+    </update>
+</mapper> 

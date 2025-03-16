@@ -1,0 +1,245 @@
+
+
+-- 1. 用户表
+CREATE TABLE users (
+    user_id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    name VARCHAR(50) NOT NULL,
+    gender ENUM('男', '女', '其他'),
+    phone VARCHAR(20),
+    role_type ENUM('患者', '医生', '管理员') NOT NULL,
+    status ENUM('启用', '禁用') NOT NULL DEFAULT '启用',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户表';
+
+-- 2. 患者信息表
+CREATE TABLE patients (
+    patient_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    id_card VARCHAR(18) UNIQUE,
+    birth_date DATE,
+    address VARCHAR(255),
+    emergency_contact VARCHAR(50),
+    emergency_phone VARCHAR(20),
+    medical_history TEXT,
+    allergy_history TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='患者信息表';
+
+-- 3. 医生信息表
+CREATE TABLE doctors (
+    doctor_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    specialty VARCHAR(100),
+    title VARCHAR(50),
+    introduction TEXT,
+    schedule TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='医生信息表';
+
+-- 4. 病历表
+CREATE TABLE medical_records (
+    record_id INT AUTO_INCREMENT PRIMARY KEY,
+    patient_id INT NOT NULL,
+    doctor_id INT NOT NULL,
+    visit_date DATETIME NOT NULL,
+    chief_complaint TEXT,
+    diagnosis TEXT,
+    treatment_plan TEXT,
+    fee DECIMAL(10, 2),
+    status ENUM('待诊', '诊疗中', '已完成', '已取消') NOT NULL DEFAULT '待诊',
+    remarks TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (patient_id) REFERENCES patients(patient_id),
+    FOREIGN KEY (doctor_id) REFERENCES doctors(doctor_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='病历表';
+
+-- 5. 眼科检查记录表
+CREATE TABLE eye_examinations (
+    examination_id INT AUTO_INCREMENT PRIMARY KEY,
+    record_id INT NOT NULL,
+    patient_id INT NOT NULL,
+    doctor_id INT NOT NULL,
+    examination_date DATETIME NOT NULL,
+    visual_acuity_left VARCHAR(20),
+    visual_acuity_right VARCHAR(20),
+    intraocular_pressure_left VARCHAR(20),
+    intraocular_pressure_right VARCHAR(20),
+    fundus_examination TEXT,
+    other_results TEXT,
+    fee DECIMAL(10, 2),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (record_id) REFERENCES medical_records(record_id),
+    FOREIGN KEY (patient_id) REFERENCES patients(patient_id),
+    FOREIGN KEY (doctor_id) REFERENCES doctors(doctor_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='眼科检查记录表';
+
+-- 6. 处方表
+CREATE TABLE prescriptions (
+    prescription_id INT AUTO_INCREMENT PRIMARY KEY,
+    record_id INT NOT NULL,
+    patient_id INT NOT NULL,
+    doctor_id INT NOT NULL,
+    issue_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    diagnosis TEXT,
+    total_fee DECIMAL(10, 2),
+    status ENUM('待发药', '已发药', '已取消') NOT NULL DEFAULT '待发药',
+    remarks TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (record_id) REFERENCES medical_records(record_id),
+    FOREIGN KEY (patient_id) REFERENCES patients(patient_id),
+    FOREIGN KEY (doctor_id) REFERENCES doctors(doctor_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='处方表';
+
+-- 7. 处方药品表
+CREATE TABLE prescription_medicines (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    prescription_id INT NOT NULL,
+    medicine_id INT NOT NULL,
+    quantity INT NOT NULL,
+    usage_method VARCHAR(255),
+    dosage VARCHAR(100),
+    fee DECIMAL(10, 2),
+    FOREIGN KEY (prescription_id) REFERENCES prescriptions(prescription_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='处方药品表';
+
+-- 8. 预约挂号表
+CREATE TABLE appointments (
+    appointment_id INT AUTO_INCREMENT PRIMARY KEY,
+    patient_id INT NOT NULL,
+    doctor_id INT NOT NULL,
+    appointment_date DATE NOT NULL,
+    time_slot VARCHAR(50) NOT NULL,
+    appointment_type ENUM('初诊', '复诊', '检查', '手术前', '手术后') NOT NULL,
+    fee DECIMAL(10, 2),
+    status ENUM('待确认', '已确认', '已完成', '已取消') NOT NULL DEFAULT '待确认',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (patient_id) REFERENCES patients(patient_id),
+    FOREIGN KEY (doctor_id) REFERENCES doctors(doctor_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='预约挂号表';
+
+-- 9. 手术记录表
+CREATE TABLE surgeries (
+    surgery_id INT AUTO_INCREMENT PRIMARY KEY,
+    patient_id INT NOT NULL,
+    doctor_id INT NOT NULL,
+    record_id INT NOT NULL,
+    surgery_type VARCHAR(100) NOT NULL,
+    surgery_date DATETIME NOT NULL,
+    description TEXT,
+    pre_evaluation TEXT,
+    post_evaluation TEXT,
+    fee DECIMAL(10, 2),
+    status ENUM('待手术', '手术中', '已完成', '已取消') NOT NULL DEFAULT '待手术',
+    remarks TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (patient_id) REFERENCES patients(patient_id),
+    FOREIGN KEY (doctor_id) REFERENCES doctors(doctor_id),
+    FOREIGN KEY (record_id) REFERENCES medical_records(record_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='手术记录表';
+
+-- 10. 住院记录表
+CREATE TABLE hospitalizations (
+    hospitalization_id INT AUTO_INCREMENT PRIMARY KEY,
+    patient_id INT NOT NULL,
+    doctor_id INT NOT NULL,
+    admission_date DATETIME NOT NULL,
+    discharge_date DATETIME,
+    bed_id INT NOT NULL,
+    reason TEXT NOT NULL,
+    status ENUM('在院', '出院', '转院', '死亡') NOT NULL DEFAULT '在院',
+    total_fee DECIMAL(10, 2),
+    remarks TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (patient_id) REFERENCES patients(patient_id),
+    FOREIGN KEY (doctor_id) REFERENCES doctors(doctor_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='住院记录表';
+
+-- 11. 床位表
+CREATE TABLE beds (
+    bed_id INT AUTO_INCREMENT PRIMARY KEY,
+    room_number VARCHAR(20) NOT NULL,
+    bed_number VARCHAR(20) NOT NULL,
+    status ENUM('空闲', '占用', '维修') NOT NULL DEFAULT '空闲',
+    price_per_day DECIMAL(10, 2) NOT NULL,
+    current_patient_id INT,
+    FOREIGN KEY (current_patient_id) REFERENCES patients(patient_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='床位表';
+
+-- 添加床位外键到住院记录表
+ALTER TABLE hospitalizations ADD FOREIGN KEY (bed_id) REFERENCES beds(bed_id);
+
+-- 12. 药品表
+CREATE TABLE medicines (
+    medicine_id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    specification VARCHAR(100) NOT NULL,
+    unit VARCHAR(20) NOT NULL,
+    manufacturer VARCHAR(100),
+    stock INT NOT NULL DEFAULT 0,
+    price DECIMAL(10, 2) NOT NULL,
+    expiry_date DATE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='药品表';
+
+-- 添加药品外键到处方药品表
+ALTER TABLE prescription_medicines ADD FOREIGN KEY (medicine_id) REFERENCES medicines(medicine_id);
+
+-- 13. 支付记录表
+CREATE TABLE payments (
+    payment_id INT AUTO_INCREMENT PRIMARY KEY,
+    patient_id INT NOT NULL,
+    order_type ENUM('挂号', '检查', '药品', '手术', '住院', '其他') NOT NULL,
+    order_id INT NOT NULL,
+    amount DECIMAL(10, 2) NOT NULL,
+    payment_method ENUM('现金', '微信', '支付宝', '医保', '银行卡', '其他') NOT NULL,
+    payment_status ENUM('待支付', '已支付', '已退款', '部分退款') NOT NULL DEFAULT '待支付',
+    payment_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    remarks TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (patient_id) REFERENCES patients(patient_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='支付记录表';
+
+-- 14. 系统用户表
+CREATE TABLE admin_users (
+    admin_id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    name VARCHAR(50) NOT NULL,
+    role ENUM('超级管理员', '普通管理员') NOT NULL,
+    status ENUM('启用', '禁用') NOT NULL DEFAULT '启用',
+    last_login DATETIME,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='系统用户表';
+
+-- 15. 系统日志表
+CREATE TABLE system_logs (
+    log_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    action VARCHAR(100) NOT NULL,
+    content TEXT,
+    ip_address VARCHAR(50),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='系统日志表';
+
+-- 创建索引以提高查询性能
+CREATE INDEX idx_patients_user_id ON patients(user_id);
+CREATE INDEX idx_doctors_user_id ON doctors(user_id);
+CREATE INDEX idx_medical_records_patient_id ON medical_records(patient_id);
+CREATE INDEX idx_medical_records_doctor_id ON medical_records(doctor_id);
+CREATE INDEX idx_eye_examinations_record_id ON eye_examinations(record_id);
+CREATE INDEX idx_eye_examinations_patient_id ON eye_examinations(patient_id);
+CREATE INDEX idx_prescriptions_record_id ON prescriptions(record_id);
+CREATE INDEX idx_prescriptions_patient_id ON prescriptions(patient_id);
+CREATE INDEX idx_prescription_medicines_prescription_id ON prescription_medicines(prescription_id);
+CREATE INDEX idx_appointments_patient_id ON appointments(patient_id);
+CREATE INDEX idx_appointments_doctor_id ON appointments(doctor_id);
+CREATE INDEX idx_surgeries_patient_id ON surgeries(patient_id);
+CREATE INDEX idx_surgeries_record_id ON surgeries(record_id);
+CREATE INDEX idx_hospitalizations_patient_id ON hospitalizations(patient_id);
+CREATE INDEX idx_hospitalizations_bed_id ON hospitalizations(bed_id);
+CREATE INDEX idx_payments_patient_id ON payments(patient_id);
+CREATE INDEX idx_system_logs_user_id ON system_logs(user_id);

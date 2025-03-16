@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.shijiehouduan.dao.SurgeryDao">
+    <!-- 结果映射 -->
+    <resultMap id="BaseResultMap" type="com.example.shijiehouduan.entity.Surgery">
+        <id column="surgery_id" property="surgeryId"/>
+        <result column="patient_id" property="patientId"/>
+        <result column="doctor_id" property="doctorId"/>
+        <result column="record_id" property="recordId"/>
+        <result column="surgery_type" property="surgeryType"/>
+        <result column="surgery_date" property="surgeryDate"/>
+        <result column="description" property="description"/>
+        <result column="pre_evaluation" property="preEvaluation"/>
+        <result column="post_evaluation" property="postEvaluation"/>
+        <result column="fee" property="fee"/>
+        <result column="status" property="status"/>
+        <result column="remarks" property="remarks"/>
+        <result column="created_at" property="createdAt"/>
+        <association property="medicalRecord" javaType="com.example.shijiehouduan.entity.MedicalRecord">
+            <id column="record_id" property="recordId"/>
+            <result column="mr_chief_complaint" property="chiefComplaint"/>
+            <result column="mr_diagnosis" property="diagnosis"/>
+        </association>
+        <association property="patient" javaType="com.example.shijiehouduan.entity.Patient">
+            <id column="patient_id" property="patientId"/>
+            <result column="p_name" property="user.name"/>
+            <result column="p_gender" property="user.gender"/>
+        </association>
+        <association property="doctor" javaType="com.example.shijiehouduan.entity.Doctor">
+            <id column="doctor_id" property="doctorId"/>
+            <result column="d_name" property="user.name"/>
+            <result column="d_title" property="title"/>
+        </association>
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        s.surgery_id, s.patient_id, s.doctor_id, s.record_id, s.surgery_type, s.surgery_date, 
+        s.description, s.pre_evaluation, s.post_evaluation, s.fee, s.status, s.remarks, s.created_at
+    </sql>
+    
+    <!-- 关联表查询结果列 -->
+    <sql id="Join_Column_List">
+        mr.chief_complaint as mr_chief_complaint, mr.diagnosis as mr_diagnosis,
+        p_u.name as p_name, p_u.gender as p_gender,
+        d_u.name as d_name, d.title as d_title
+    </sql>
+
+    <!-- 根据ID查询手术记录 -->
+    <select id="findById" resultMap="BaseResultMap" parameterType="java.lang.Integer">
+        SELECT
+        <include refid="Base_Column_List"/>,
+        <include refid="Join_Column_List"/>
+        FROM surgeries s
+        LEFT JOIN medical_records mr ON s.record_id = mr.record_id
+        LEFT JOIN patients p ON s.patient_id = p.patient_id
+        LEFT JOIN users p_u ON p.user_id = p_u.user_id
+        LEFT JOIN doctors d ON s.doctor_id = d.doctor_id
+        LEFT JOIN users d_u ON d.user_id = d_u.user_id
+        WHERE s.surgery_id = #{surgeryId}
+    </select>
+
+    <!-- 根据病历ID查询手术记录 -->
+    <select id="findByRecordId" resultMap="BaseResultMap" parameterType="java.lang.Integer">
+        SELECT
+        <include refid="Base_Column_List"/>,
+        <include refid="Join_Column_List"/>
+        FROM surgeries s
+        LEFT JOIN medical_records mr ON s.record_id = mr.record_id
+        LEFT JOIN patients p ON s.patient_id = p.patient_id
+        LEFT JOIN users p_u ON p.user_id = p_u.user_id
+        LEFT JOIN doctors d ON s.doctor_id = d.doctor_id
+        LEFT JOIN users d_u ON d.user_id = d_u.user_id
+        WHERE s.record_id = #{recordId}
+        ORDER BY s.surgery_date DESC
+    </select>
+
+    <!-- 根据患者ID查询手术记录 -->
+    <select id="findByPatientId" resultMap="BaseResultMap" parameterType="java.lang.Integer">
+        SELECT
+        <include refid="Base_Column_List"/>,
+        <include refid="Join_Column_List"/>
+        FROM surgeries s
+        LEFT JOIN medical_records mr ON s.record_id = mr.record_id
+        LEFT JOIN patients p ON s.patient_id = p.patient_id
+        LEFT JOIN users p_u ON p.user_id = p_u.user_id
+        LEFT JOIN doctors d ON s.doctor_id = d.doctor_id
+        LEFT JOIN users d_u ON d.user_id = d_u.user_id
+        WHERE s.patient_id = #{patientId}
+        ORDER BY s.surgery_date DESC
+    </select>
+
+    <!-- 根据医生ID查询手术记录 -->
+    <select id="findByDoctorId" resultMap="BaseResultMap" parameterType="java.lang.Integer">
+        SELECT
+        <include refid="Base_Column_List"/>,
+        <include refid="Join_Column_List"/>
+        FROM surgeries s
+        LEFT JOIN medical_records mr ON s.record_id = mr.record_id
+        LEFT JOIN patients p ON s.patient_id = p.patient_id
+        LEFT JOIN users p_u ON p.user_id = p_u.user_id
+        LEFT JOIN doctors d ON s.doctor_id = d.doctor_id
+        LEFT JOIN users d_u ON d.user_id = d_u.user_id
+        WHERE s.doctor_id = #{doctorId}
+        ORDER BY s.surgery_date DESC
+    </select>
+
+    <!-- 根据状态查询手术记录 -->
+    <select id="findByStatus" resultMap="BaseResultMap" parameterType="java.lang.String">
+        SELECT
+        <include refid="Base_Column_List"/>,
+        <include refid="Join_Column_List"/>
+        FROM surgeries s
+        LEFT JOIN medical_records mr ON s.record_id = mr.record_id
+        LEFT JOIN patients p ON s.patient_id = p.patient_id
+        LEFT JOIN users p_u ON p.user_id = p_u.user_id
+        LEFT JOIN doctors d ON s.doctor_id = d.doctor_id
+        LEFT JOIN users d_u ON d.user_id = d_u.user_id
+        WHERE s.status = #{status}
+        ORDER BY s.surgery_date DESC
+    </select>
+
+    <!-- 根据手术类型查询手术记录 -->
+    <select id="findByType" resultMap="BaseResultMap" parameterType="java.lang.String">
+        SELECT
+        <include refid="Base_Column_List"/>,
+        <include refid="Join_Column_List"/>
+        FROM surgeries s
+        LEFT JOIN medical_records mr ON s.record_id = mr.record_id
+        LEFT JOIN patients p ON s.patient_id = p.patient_id
+        LEFT JOIN users p_u ON p.user_id = p_u.user_id
+        LEFT JOIN doctors d ON s.doctor_id = d.doctor_id
+        LEFT JOIN users d_u ON d.user_id = d_u.user_id
+        WHERE s.surgery_type = #{surgeryType}
+        ORDER BY s.surgery_date DESC
+    </select>
+
+    <!-- 查询所有手术记录 -->
+    <select id="findAll" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>,
+        <include refid="Join_Column_List"/>
+        FROM surgeries s
+        LEFT JOIN medical_records mr ON s.record_id = mr.record_id
+        LEFT JOIN patients p ON s.patient_id = p.patient_id
+        LEFT JOIN users p_u ON p.user_id = p_u.user_id
+        LEFT JOIN doctors d ON s.doctor_id = d.doctor_id
+        LEFT JOIN users d_u ON d.user_id = d_u.user_id
+        ORDER BY s.surgery_date DESC
+    </select>
+
+    <!-- 新增手术记录 -->
+    <insert id="insert" parameterType="com.example.shijiehouduan.entity.Surgery" useGeneratedKeys="true" keyProperty="surgeryId">
+        INSERT INTO surgeries (
+            patient_id, doctor_id, record_id, surgery_type, surgery_date, 
+            description, pre_evaluation, post_evaluation, fee, status, remarks, created_at
+        ) VALUES (
+            #{patientId}, #{doctorId}, #{recordId}, #{surgeryType}, #{surgeryDate}, 
+            #{description}, #{preEvaluation}, #{postEvaluation}, #{fee}, #{status}, #{remarks}, #{createdAt}
+        )
+    </insert>
+
+    <!-- 更新手术记录 -->
+    <update id="update" parameterType="com.example.shijiehouduan.entity.Surgery">
+        UPDATE surgeries
+        <set>
+            <if test="patientId != null">patient_id = #{patientId},</if>
+            <if test="doctorId != null">doctor_id = #{doctorId},</if>
+            <if test="recordId != null">record_id = #{recordId},</if>
+            <if test="surgeryType != null">surgery_type = #{surgeryType},</if>
+            <if test="surgeryDate != null">surgery_date = #{surgeryDate},</if>
+            <if test="description != null">description = #{description},</if>
+            <if test="preEvaluation != null">pre_evaluation = #{preEvaluation},</if>
+            <if test="postEvaluation != null">post_evaluation = #{postEvaluation},</if>
+            <if test="fee != null">fee = #{fee},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="remarks != null">remarks = #{remarks},</if>
+        </set>
+        WHERE surgery_id = #{surgeryId}
+    </update>
+
+    <!-- 更新手术状态 -->
+    <update id="updateStatus">
+        UPDATE surgeries
+        SET status = #{status}
+        WHERE surgery_id = #{surgeryId}
+    </update>
+
+    <!-- 统计指定状态的手术记录数量 -->
+    <select id="countByStatus" resultType="long" parameterType="java.lang.String">
+        SELECT COUNT(*)
+        FROM surgeries
+        WHERE status = #{status}
+    </select>
+
+    <!-- 按手术类型统计手术记录数量 -->
+    <select id="countByType" resultType="java.util.Map">
+        SELECT 
+            surgery_type,
+            COUNT(*) as surgery_count
+        FROM surgeries
+        GROUP BY surgery_type
+        ORDER BY surgery_count DESC
+    </select>
+</mapper> 

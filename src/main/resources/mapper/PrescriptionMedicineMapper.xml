@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.shijiehouduan.dao.PrescriptionMedicineDao">
+    <!-- 结果映射 -->
+    <resultMap id="BaseResultMap" type="com.example.shijiehouduan.entity.PrescriptionMedicine">
+        <id column="id" property="id"/>
+        <result column="prescription_id" property="prescriptionId"/>
+        <result column="medicine_id" property="medicineId"/>
+        <result column="quantity" property="quantity"/>
+        <result column="usage_method" property="usageMethod"/>
+        <result column="dosage" property="dosage"/>
+        <result column="fee" property="fee"/>
+        <association property="medicine" javaType="com.example.shijiehouduan.entity.Medicine">
+            <id column="medicine_id" property="medicineId"/>
+            <result column="name" property="name"/>
+            <result column="specification" property="specification"/>
+            <result column="unit" property="unit"/>
+            <result column="manufacturer" property="manufacturer"/>
+            <result column="price" property="price"/>
+        </association>
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        pm.id, pm.prescription_id, pm.medicine_id, pm.quantity, pm.usage_method, pm.dosage, pm.fee
+    </sql>
+    
+    <!-- 关联药品表的查询结果列 -->
+    <sql id="Medicine_Column_List">
+        m.name, m.specification, m.unit, m.manufacturer, m.price
+    </sql>
+
+    <!-- 根据ID查询处方药品 -->
+    <select id="findById" resultMap="BaseResultMap" parameterType="java.lang.Integer">
+        SELECT
+        <include refid="Base_Column_List"/>,
+        <include refid="Medicine_Column_List"/>
+        FROM prescription_medicines pm
+        LEFT JOIN medicines m ON pm.medicine_id = m.medicine_id
+        WHERE pm.id = #{id}
+    </select>
+
+    <!-- 根据处方ID查询处方药品列表 -->
+    <select id="findByPrescriptionId" resultMap="BaseResultMap" parameterType="java.lang.Integer">
+        SELECT
+        <include refid="Base_Column_List"/>,
+        <include refid="Medicine_Column_List"/>
+        FROM prescription_medicines pm
+        LEFT JOIN medicines m ON pm.medicine_id = m.medicine_id
+        WHERE pm.prescription_id = #{prescriptionId}
+        ORDER BY pm.id
+    </select>
+
+    <!-- 根据药品ID查询处方药品列表 -->
+    <select id="findByMedicineId" resultMap="BaseResultMap" parameterType="java.lang.Integer">
+        SELECT
+        <include refid="Base_Column_List"/>,
+        <include refid="Medicine_Column_List"/>
+        FROM prescription_medicines pm
+        LEFT JOIN medicines m ON pm.medicine_id = m.medicine_id
+        WHERE pm.medicine_id = #{medicineId}
+        ORDER BY pm.id
+    </select>
+
+    <!-- 新增处方药品 -->
+    <insert id="insert" parameterType="com.example.shijiehouduan.entity.PrescriptionMedicine" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO prescription_medicines (
+            prescription_id, medicine_id, quantity, usage_method, dosage, fee
+        ) VALUES (
+            #{prescriptionId}, #{medicineId}, #{quantity}, #{usageMethod}, #{dosage}, #{fee}
+        )
+    </insert>
+
+    <!-- 批量新增处方药品 -->
+    <insert id="batchInsert" parameterType="java.util.List">
+        INSERT INTO prescription_medicines (
+            prescription_id, medicine_id, quantity, usage_method, dosage, fee
+        ) VALUES 
+        <foreach collection="list" item="item" separator=",">
+            (#{item.prescriptionId}, #{item.medicineId}, #{item.quantity}, #{item.usageMethod}, #{item.dosage}, #{item.fee})
+        </foreach>
+    </insert>
+
+    <!-- 更新处方药品 -->
+    <update id="update" parameterType="com.example.shijiehouduan.entity.PrescriptionMedicine">
+        UPDATE prescription_medicines
+        <set>
+            <if test="prescriptionId != null">prescription_id = #{prescriptionId},</if>
+            <if test="medicineId != null">medicine_id = #{medicineId},</if>
+            <if test="quantity != null">quantity = #{quantity},</if>
+            <if test="usageMethod != null">usage_method = #{usageMethod},</if>
+            <if test="dosage != null">dosage = #{dosage},</if>
+            <if test="fee != null">fee = #{fee},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <!-- 删除处方药品 -->
+    <delete id="delete" parameterType="java.lang.Integer">
+        DELETE FROM prescription_medicines
+        WHERE id = #{id}
+    </delete>
+
+    <!-- 根据处方ID删除处方药品 -->
+    <delete id="deleteByPrescriptionId" parameterType="java.lang.Integer">
+        DELETE FROM prescription_medicines
+        WHERE prescription_id = #{prescriptionId}
+    </delete>
+</mapper> 

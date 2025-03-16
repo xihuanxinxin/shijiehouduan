@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.shijiehouduan.dao.AppointmentDao">
+    <!-- 结果映射 -->
+    <resultMap id="BaseResultMap" type="com.example.shijiehouduan.entity.Appointment">
+        <id column="appointment_id" property="appointmentId"/>
+        <result column="patient_id" property="patientId"/>
+        <result column="doctor_id" property="doctorId"/>
+        <result column="appointment_date" property="appointmentDate"/>
+        <result column="time_slot" property="timeSlot"/>
+        <result column="appointment_type" property="appointmentType"/>
+        <result column="fee" property="fee"/>
+        <result column="status" property="status"/>
+        <result column="created_at" property="createdAt"/>
+        <!-- 关联患者信息 -->
+        <association property="patient" javaType="com.example.shijiehouduan.entity.Patient">
+            <id column="patient_id" property="patientId"/>
+            <result column="p_user_id" property="userId"/>
+            <result column="p_id_card" property="idCard"/>
+            <result column="p_name" property="user.name"/>
+            <result column="p_gender" property="user.gender"/>
+            <result column="p_phone" property="user.phone"/>
+        </association>
+        <!-- 关联医生信息 -->
+        <association property="doctor" javaType="com.example.shijiehouduan.entity.Doctor">
+            <id column="doctor_id" property="doctorId"/>
+            <result column="d_user_id" property="userId"/>
+            <result column="d_specialty" property="specialty"/>
+            <result column="d_title" property="title"/>
+            <result column="d_name" property="user.name"/>
+        </association>
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        appointment_id, patient_id, doctor_id, appointment_date, time_slot, appointment_type, 
+        fee, status, created_at
+    </sql>
+
+    <!-- 根据ID查询预约 -->
+    <select id="findById" resultMap="BaseResultMap" parameterType="java.lang.Integer">
+        SELECT
+        a.*, 
+        p.user_id as p_user_id, p.id_card as p_id_card,
+        pu.name as p_name, pu.gender as p_gender, pu.phone as p_phone,
+        d.user_id as d_user_id, d.specialty as d_specialty, d.title as d_title,
+        du.name as d_name
+        FROM appointments a
+        LEFT JOIN patients p ON a.patient_id = p.patient_id
+        LEFT JOIN users pu ON p.user_id = pu.user_id
+        LEFT JOIN doctors d ON a.doctor_id = d.doctor_id
+        LEFT JOIN users du ON d.user_id = du.user_id
+        WHERE a.appointment_id = #{appointmentId}
+    </select>
+
+    <!-- 根据患者ID查询预约列表 -->
+    <select id="findByPatientId" resultMap="BaseResultMap" parameterType="java.lang.Integer">
+        SELECT
+        a.*, 
+        p.user_id as p_user_id, p.id_card as p_id_card,
+        pu.name as p_name, pu.gender as p_gender, pu.phone as p_phone,
+        d.user_id as d_user_id, d.specialty as d_specialty, d.title as d_title,
+        du.name as d_name
+        FROM appointments a
+        LEFT JOIN patients p ON a.patient_id = p.patient_id
+        LEFT JOIN users pu ON p.user_id = pu.user_id
+        LEFT JOIN doctors d ON a.doctor_id = d.doctor_id
+        LEFT JOIN users du ON d.user_id = du.user_id
+        WHERE a.patient_id = #{patientId}
+        ORDER BY a.appointment_date DESC, a.time_slot
+    </select>
+
+    <!-- 根据医生ID查询预约列表 -->
+    <select id="findByDoctorId" resultMap="BaseResultMap" parameterType="java.lang.Integer">
+        SELECT
+        a.*, 
+        p.user_id as p_user_id, p.id_card as p_id_card,
+        pu.name as p_name, pu.gender as p_gender, pu.phone as p_phone,
+        d.user_id as d_user_id, d.specialty as d_specialty, d.title as d_title,
+        du.name as d_name
+        FROM appointments a
+        LEFT JOIN patients p ON a.patient_id = p.patient_id
+        LEFT JOIN users pu ON p.user_id = pu.user_id
+        LEFT JOIN doctors d ON a.doctor_id = d.doctor_id
+        LEFT JOIN users du ON d.user_id = du.user_id
+        WHERE a.doctor_id = #{doctorId}
+        ORDER BY a.appointment_date DESC, a.time_slot
+    </select>
+
+    <!-- 根据医生ID和日期查询预约列表 -->
+    <select id="findByDoctorIdAndDate" resultMap="BaseResultMap">
+        SELECT
+        a.*, 
+        p.user_id as p_user_id, p.id_card as p_id_card,
+        pu.name as p_name, pu.gender as p_gender, pu.phone as p_phone,
+        d.user_id as d_user_id, d.specialty as d_specialty, d.title as d_title,
+        du.name as d_name
+        FROM appointments a
+        LEFT JOIN patients p ON a.patient_id = p.patient_id
+        LEFT JOIN users pu ON p.user_id = pu.user_id
+        LEFT JOIN doctors d ON a.doctor_id = d.doctor_id
+        LEFT JOIN users du ON d.user_id = du.user_id
+        WHERE a.doctor_id = #{doctorId} AND DATE(a.appointment_date) = DATE(#{appointmentDate})
+        ORDER BY a.time_slot
+    </select>
+
+    <!-- 根据状态查询预约列表 -->
+    <select id="findByStatus" resultMap="BaseResultMap" parameterType="java.lang.String">
+        SELECT
+        a.*, 
+        p.user_id as p_user_id, p.id_card as p_id_card,
+        pu.name as p_name, pu.gender as p_gender, pu.phone as p_phone,
+        d.user_id as d_user_id, d.specialty as d_specialty, d.title as d_title,
+        du.name as d_name
+        FROM appointments a
+        LEFT JOIN patients p ON a.patient_id = p.patient_id
+        LEFT JOIN users pu ON p.user_id = pu.user_id
+        LEFT JOIN doctors d ON a.doctor_id = d.doctor_id
+        LEFT JOIN users du ON d.user_id = du.user_id
+        WHERE a.status = #{status}
+        ORDER BY a.appointment_date DESC, a.time_slot
+    </select>
+
+    <!-- 添加预约 -->
+    <insert id="insert" parameterType="com.example.shijiehouduan.entity.Appointment" useGeneratedKeys="true" keyProperty="appointmentId">
+        INSERT INTO appointments (
+            patient_id, doctor_id, appointment_date, time_slot, appointment_type, 
+            fee, status, created_at
+        ) VALUES (
+            #{patientId}, #{doctorId}, #{appointmentDate}, #{timeSlot}, #{appointmentType}, 
+            #{fee}, #{status}, #{createdAt}
+        )
+    </insert>
+
+    <!-- 更新预约 -->
+    <update id="update" parameterType="com.example.shijiehouduan.entity.Appointment">
+        UPDATE appointments
+        <set>
+            <if test="patientId != null">patient_id = #{patientId},</if>
+            <if test="doctorId != null">doctor_id = #{doctorId},</if>
+            <if test="appointmentDate != null">appointment_date = #{appointmentDate},</if>
+            <if test="timeSlot != null">time_slot = #{timeSlot},</if>
+            <if test="appointmentType != null">appointment_type = #{appointmentType},</if>
+            <if test="fee != null">fee = #{fee},</if>
+            <if test="status != null">status = #{status},</if>
+        </set>
+        WHERE appointment_id = #{appointmentId}
+    </update>
+
+    <!-- 删除预约 -->
+    <delete id="deleteById" parameterType="java.lang.Integer">
+        DELETE FROM appointments WHERE appointment_id = #{appointmentId}
+    </delete>
+</mapper> 

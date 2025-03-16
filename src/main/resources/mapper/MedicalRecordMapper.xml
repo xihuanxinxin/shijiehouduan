@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.shijiehouduan.dao.MedicalRecordDao">
+    <!-- 结果映射 -->
+    <resultMap id="BaseResultMap" type="com.example.shijiehouduan.entity.MedicalRecord">
+        <id column="record_id" property="recordId"/>
+        <result column="patient_id" property="patientId"/>
+        <result column="doctor_id" property="doctorId"/>
+        <result column="visit_date" property="visitDate"/>
+        <result column="chief_complaint" property="chiefComplaint"/>
+        <result column="diagnosis" property="diagnosis"/>
+        <result column="treatment_plan" property="treatmentPlan"/>
+        <result column="fee" property="fee"/>
+        <result column="status" property="status"/>
+        <result column="remarks" property="remarks"/>
+        <result column="created_at" property="createdAt"/>
+        <!-- 关联患者信息 -->
+        <association property="patient" javaType="com.example.shijiehouduan.entity.Patient">
+            <id column="patient_id" property="patientId"/>
+            <result column="p_user_id" property="userId"/>
+            <result column="p_id_card" property="idCard"/>
+            <result column="p_name" property="user.name"/>
+            <result column="p_gender" property="user.gender"/>
+            <result column="p_phone" property="user.phone"/>
+        </association>
+        <!-- 关联医生信息 -->
+        <association property="doctor" javaType="com.example.shijiehouduan.entity.Doctor">
+            <id column="doctor_id" property="doctorId"/>
+            <result column="d_user_id" property="userId"/>
+            <result column="d_specialty" property="specialty"/>
+            <result column="d_title" property="title"/>
+            <result column="d_name" property="user.name"/>
+        </association>
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        record_id, patient_id, doctor_id, visit_date, chief_complaint, diagnosis, 
+        treatment_plan, fee, status, remarks, created_at
+    </sql>
+
+    <!-- 根据ID查询病历 -->
+    <select id="findById" resultMap="BaseResultMap" parameterType="java.lang.Integer">
+        SELECT
+        m.*, 
+        p.user_id as p_user_id, p.id_card as p_id_card,
+        pu.name as p_name, pu.gender as p_gender, pu.phone as p_phone,
+        d.user_id as d_user_id, d.specialty as d_specialty, d.title as d_title,
+        du.name as d_name
+        FROM medical_records m
+        LEFT JOIN patients p ON m.patient_id = p.patient_id
+        LEFT JOIN users pu ON p.user_id = pu.user_id
+        LEFT JOIN doctors d ON m.doctor_id = d.doctor_id
+        LEFT JOIN users du ON d.user_id = du.user_id
+        WHERE m.record_id = #{recordId}
+    </select>
+
+    <!-- 根据患者ID查询病历列表 -->
+    <select id="findByPatientId" resultMap="BaseResultMap" parameterType="java.lang.Integer">
+        SELECT
+        m.*, 
+        p.user_id as p_user_id, p.id_card as p_id_card,
+        pu.name as p_name, pu.gender as p_gender, pu.phone as p_phone,
+        d.user_id as d_user_id, d.specialty as d_specialty, d.title as d_title,
+        du.name as d_name
+        FROM medical_records m
+        LEFT JOIN patients p ON m.patient_id = p.patient_id
+        LEFT JOIN users pu ON p.user_id = pu.user_id
+        LEFT JOIN doctors d ON m.doctor_id = d.doctor_id
+        LEFT JOIN users du ON d.user_id = du.user_id
+        WHERE m.patient_id = #{patientId}
+        ORDER BY m.visit_date DESC
+    </select>
+
+    <!-- 根据医生ID查询病历列表 -->
+    <select id="findByDoctorId" resultMap="BaseResultMap" parameterType="java.lang.Integer">
+        SELECT
+        m.*, 
+        p.user_id as p_user_id, p.id_card as p_id_card,
+        pu.name as p_name, pu.gender as p_gender, pu.phone as p_phone,
+        d.user_id as d_user_id, d.specialty as d_specialty, d.title as d_title,
+        du.name as d_name
+        FROM medical_records m
+        LEFT JOIN patients p ON m.patient_id = p.patient_id
+        LEFT JOIN users pu ON p.user_id = pu.user_id
+        LEFT JOIN doctors d ON m.doctor_id = d.doctor_id
+        LEFT JOIN users du ON d.user_id = du.user_id
+        WHERE m.doctor_id = #{doctorId}
+        ORDER BY m.visit_date DESC
+    </select>
+
+    <!-- 根据状态查询病历列表 -->
+    <select id="findByStatus" resultMap="BaseResultMap" parameterType="java.lang.String">
+        SELECT
+        m.*, 
+        p.user_id as p_user_id, p.id_card as p_id_card,
+        pu.name as p_name, pu.gender as p_gender, pu.phone as p_phone,
+        d.user_id as d_user_id, d.specialty as d_specialty, d.title as d_title,
+        du.name as d_name
+        FROM medical_records m
+        LEFT JOIN patients p ON m.patient_id = p.patient_id
+        LEFT JOIN users pu ON p.user_id = pu.user_id
+        LEFT JOIN doctors d ON m.doctor_id = d.doctor_id
+        LEFT JOIN users du ON d.user_id = du.user_id
+        WHERE m.status = #{status}
+        ORDER BY m.visit_date DESC
+    </select>
+
+    <!-- 添加病历 -->
+    <insert id="insert" parameterType="com.example.shijiehouduan.entity.MedicalRecord" useGeneratedKeys="true" keyProperty="recordId">
+        INSERT INTO medical_records (
+            patient_id, doctor_id, visit_date, chief_complaint, diagnosis, 
+            treatment_plan, fee, status, remarks, created_at
+        ) VALUES (
+            #{patientId}, #{doctorId}, #{visitDate}, #{chiefComplaint}, #{diagnosis}, 
+            #{treatmentPlan}, #{fee}, #{status}, #{remarks}, #{createdAt}
+        )
+    </insert>
+
+    <!-- 更新病历 -->
+    <update id="update" parameterType="com.example.shijiehouduan.entity.MedicalRecord">
+        UPDATE medical_records
+        <set>
+            <if test="patientId != null">patient_id = #{patientId},</if>
+            <if test="doctorId != null">doctor_id = #{doctorId},</if>
+            <if test="visitDate != null">visit_date = #{visitDate},</if>
+            <if test="chiefComplaint != null">chief_complaint = #{chiefComplaint},</if>
+            <if test="diagnosis != null">diagnosis = #{diagnosis},</if>
+            <if test="treatmentPlan != null">treatment_plan = #{treatmentPlan},</if>
+            <if test="fee != null">fee = #{fee},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="remarks != null">remarks = #{remarks},</if>
+        </set>
+        WHERE record_id = #{recordId}
+    </update>
+
+    <!-- 更新病历状态 -->
+    <update id="updateStatus">
+        UPDATE medical_records
+        SET status = #{status}
+        WHERE record_id = #{recordId}
+    </update>
+</mapper> 

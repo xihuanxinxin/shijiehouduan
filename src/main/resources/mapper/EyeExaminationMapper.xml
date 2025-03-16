@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.shijiehouduan.dao.EyeExaminationDao">
+    <!-- 结果映射 -->
+    <resultMap id="BaseResultMap" type="com.example.shijiehouduan.entity.EyeExamination">
+        <id column="examination_id" property="examinationId"/>
+        <result column="record_id" property="recordId"/>
+        <result column="patient_id" property="patientId"/>
+        <result column="doctor_id" property="doctorId"/>
+        <result column="examination_date" property="examinationDate"/>
+        <result column="visual_acuity_left" property="visualAcuityLeft"/>
+        <result column="visual_acuity_right" property="visualAcuityRight"/>
+        <result column="intraocular_pressure_left" property="intraocularPressureLeft"/>
+        <result column="intraocular_pressure_right" property="intraocularPressureRight"/>
+        <result column="fundus_examination" property="fundusExamination"/>
+        <result column="other_results" property="otherResults"/>
+        <result column="fee" property="fee"/>
+        <result column="created_at" property="createdAt"/>
+        <!-- 关联病历信息 -->
+        <association property="medicalRecord" javaType="com.example.shijiehouduan.entity.MedicalRecord">
+            <id column="record_id" property="recordId"/>
+            <result column="mr_chief_complaint" property="chiefComplaint"/>
+            <result column="mr_diagnosis" property="diagnosis"/>
+        </association>
+        <!-- 关联患者信息 -->
+        <association property="patient" javaType="com.example.shijiehouduan.entity.Patient">
+            <id column="patient_id" property="patientId"/>
+            <result column="p_name" property="user.name"/>
+            <result column="p_gender" property="user.gender"/>
+        </association>
+        <!-- 关联医生信息 -->
+        <association property="doctor" javaType="com.example.shijiehouduan.entity.Doctor">
+            <id column="doctor_id" property="doctorId"/>
+            <result column="d_name" property="user.name"/>
+            <result column="d_title" property="title"/>
+        </association>
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        e.examination_id, e.record_id, e.patient_id, e.doctor_id, e.examination_date, 
+        e.visual_acuity_left, e.visual_acuity_right, e.intraocular_pressure_left, e.intraocular_pressure_right, 
+        e.fundus_examination, e.other_results, e.fee, e.created_at
+    </sql>
+
+    <!-- 关联表查询结果列 -->
+    <sql id="Join_Column_List">
+        mr.chief_complaint as mr_chief_complaint, mr.diagnosis as mr_diagnosis,
+        p_u.name as p_name, p_u.gender as p_gender,
+        d_u.name as d_name, d.title as d_title
+    </sql>
+
+    <!-- 根据ID查询眼科检查记录 -->
+    <select id="findById" resultMap="BaseResultMap" parameterType="java.lang.Integer">
+        SELECT
+        <include refid="Base_Column_List"/>,
+        <include refid="Join_Column_List"/>
+        FROM eye_examinations e
+        LEFT JOIN medical_records mr ON e.record_id = mr.record_id
+        LEFT JOIN patients p ON e.patient_id = p.patient_id
+        LEFT JOIN users p_u ON p.user_id = p_u.user_id
+        LEFT JOIN doctors d ON e.doctor_id = d.doctor_id
+        LEFT JOIN users d_u ON d.user_id = d_u.user_id
+        WHERE e.examination_id = #{examinationId}
+    </select>
+
+    <!-- 根据病历ID查询眼科检查记录列表 -->
+    <select id="findByRecordId" resultMap="BaseResultMap" parameterType="java.lang.Integer">
+        SELECT
+        <include refid="Base_Column_List"/>,
+        <include refid="Join_Column_List"/>
+        FROM eye_examinations e
+        LEFT JOIN medical_records mr ON e.record_id = mr.record_id
+        LEFT JOIN patients p ON e.patient_id = p.patient_id
+        LEFT JOIN users p_u ON p.user_id = p_u.user_id
+        LEFT JOIN doctors d ON e.doctor_id = d.doctor_id
+        LEFT JOIN users d_u ON d.user_id = d_u.user_id
+        WHERE e.record_id = #{recordId}
+        ORDER BY e.examination_date DESC
+    </select>
+
+    <!-- 根据患者ID查询眼科检查记录列表 -->
+    <select id="findByPatientId" resultMap="BaseResultMap" parameterType="java.lang.Integer">
+        SELECT
+        <include refid="Base_Column_List"/>,
+        <include refid="Join_Column_List"/>
+        FROM eye_examinations e
+        LEFT JOIN medical_records mr ON e.record_id = mr.record_id
+        LEFT JOIN patients p ON e.patient_id = p.patient_id
+        LEFT JOIN users p_u ON p.user_id = p_u.user_id
+        LEFT JOIN doctors d ON e.doctor_id = d.doctor_id
+        LEFT JOIN users d_u ON d.user_id = d_u.user_id
+        WHERE e.patient_id = #{patientId}
+        ORDER BY e.examination_date DESC
+    </select>
+
+    <!-- 根据医生ID查询眼科检查记录列表 -->
+    <select id="findByDoctorId" resultMap="BaseResultMap" parameterType="java.lang.Integer">
+        SELECT
+        <include refid="Base_Column_List"/>,
+        <include refid="Join_Column_List"/>
+        FROM eye_examinations e
+        LEFT JOIN medical_records mr ON e.record_id = mr.record_id
+        LEFT JOIN patients p ON e.patient_id = p.patient_id
+        LEFT JOIN users p_u ON p.user_id = p_u.user_id
+        LEFT JOIN doctors d ON e.doctor_id = d.doctor_id
+        LEFT JOIN users d_u ON d.user_id = d_u.user_id
+        WHERE e.doctor_id = #{doctorId}
+        ORDER BY e.examination_date DESC
+    </select>
+    
+    <!-- 查询所有眼科检查记录 -->
+    <select id="findAll" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>,
+        <include refid="Join_Column_List"/>
+        FROM eye_examinations e
+        LEFT JOIN medical_records mr ON e.record_id = mr.record_id
+        LEFT JOIN patients p ON e.patient_id = p.patient_id
+        LEFT JOIN users p_u ON p.user_id = p_u.user_id
+        LEFT JOIN doctors d ON e.doctor_id = d.doctor_id
+        LEFT JOIN users d_u ON d.user_id = d_u.user_id
+        ORDER BY e.examination_date DESC
+    </select>
+
+    <!-- 添加眼科检查记录 -->
+    <insert id="insert" parameterType="com.example.shijiehouduan.entity.EyeExamination" useGeneratedKeys="true" keyProperty="examinationId">
+        INSERT INTO eye_examinations (
+            record_id, patient_id, doctor_id, examination_date, 
+            visual_acuity_left, visual_acuity_right, intraocular_pressure_left, intraocular_pressure_right, 
+            fundus_examination, other_results, fee, created_at
+        ) VALUES (
+            #{recordId}, #{patientId}, #{doctorId}, #{examinationDate}, 
+            #{visualAcuityLeft}, #{visualAcuityRight}, #{intraocularPressureLeft}, #{intraocularPressureRight}, 
+            #{fundusExamination}, #{otherResults}, #{fee}, #{createdAt}
+        )
+    </insert>
+    
+    <!-- 更新眼科检查记录 -->
+    <update id="update" parameterType="com.example.shijiehouduan.entity.EyeExamination">
+        UPDATE eye_examinations
+        <set>
+            <if test="recordId != null">record_id = #{recordId},</if>
+            <if test="patientId != null">patient_id = #{patientId},</if>
+            <if test="doctorId != null">doctor_id = #{doctorId},</if>
+            <if test="examinationDate != null">examination_date = #{examinationDate},</if>
+            <if test="visualAcuityLeft != null">visual_acuity_left = #{visualAcuityLeft},</if>
+            <if test="visualAcuityRight != null">visual_acuity_right = #{visualAcuityRight},</if>
+            <if test="intraocularPressureLeft != null">intraocular_pressure_left = #{intraocularPressureLeft},</if>
+            <if test="intraocularPressureRight != null">intraocular_pressure_right = #{intraocularPressureRight},</if>
+            <if test="fundusExamination != null">fundus_examination = #{fundusExamination},</if>
+            <if test="otherResults != null">other_results = #{otherResults},</if>
+            <if test="fee != null">fee = #{fee},</if>
+        </set>
+        WHERE examination_id = #{examinationId}
+    </update>
+
+    <!-- 统计所有眼科检查记录数量 -->
+    <select id="countAll" resultType="long">
+        SELECT COUNT(*)
+        FROM eye_examinations
+    </select>
+
+    <!-- 按医生统计眼科检查记录数量 -->
+    <select id="countByDoctor" resultType="java.util.Map">
+        SELECT 
+            e.doctor_id,
+            d_u.name as doctor_name,
+            d.title as doctor_title,
+            COUNT(*) as examination_count
+        FROM eye_examinations e
+        LEFT JOIN doctors d ON e.doctor_id = d.doctor_id
+        LEFT JOIN users d_u ON d.user_id = d_u.user_id
+        GROUP BY e.doctor_id, d_u.name, d.title
+        ORDER BY examination_count DESC
+    </select>
+</mapper> 

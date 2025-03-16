@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.shijiehouduan.dao.PatientDao">
+    <!-- 结果映射 -->
+    <resultMap id="BaseResultMap" type="com.example.shijiehouduan.entity.Patient">
+        <id column="patient_id" property="patientId"/>
+        <result column="user_id" property="userId"/>
+        <result column="id_card" property="idCard"/>
+        <result column="birth_date" property="birthDate"/>
+        <result column="address" property="address"/>
+        <result column="emergency_contact" property="emergencyContact"/>
+        <result column="emergency_phone" property="emergencyPhone"/>
+        <result column="medical_history" property="medicalHistory"/>
+        <result column="allergy_history" property="allergyHistory"/>
+        <result column="created_at" property="createdAt"/>
+        <!-- 关联用户信息 -->
+        <association property="user" javaType="com.example.shijiehouduan.entity.User">
+            <id column="user_id" property="userId"/>
+            <result column="username" property="username"/>
+            <result column="name" property="name"/>
+            <result column="gender" property="gender"/>
+            <result column="phone" property="phone"/>
+            <result column="role_type" property="roleType"/>
+            <result column="status" property="status"/>
+        </association>
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        patient_id, user_id, id_card, birth_date, address, emergency_contact, emergency_phone, 
+        medical_history, allergy_history, created_at
+    </sql>
+
+    <!-- 根据ID查询患者 -->
+    <select id="findById" resultMap="BaseResultMap" parameterType="java.lang.Integer">
+        SELECT
+        p.*, u.username, u.name, u.gender, u.phone, u.role_type, u.status
+        FROM patients p
+        LEFT JOIN users u ON p.user_id = u.user_id
+        WHERE p.patient_id = #{patientId}
+    </select>
+
+    <!-- 根据用户ID查询患者 -->
+    <select id="findByUserId" resultMap="BaseResultMap" parameterType="java.lang.Integer">
+        SELECT
+        p.*, u.username, u.name, u.gender, u.phone, u.role_type, u.status
+        FROM patients p
+        LEFT JOIN users u ON p.user_id = u.user_id
+        WHERE p.user_id = #{userId}
+    </select>
+
+    <!-- 根据身份证号查询患者 -->
+    <select id="findByIdCard" resultMap="BaseResultMap" parameterType="java.lang.String">
+        SELECT
+        p.*, u.username, u.name, u.gender, u.phone, u.role_type, u.status
+        FROM patients p
+        LEFT JOIN users u ON p.user_id = u.user_id
+        WHERE p.id_card = #{idCard}
+    </select>
+
+    <!-- 查询所有患者 -->
+    <select id="findAll" resultMap="BaseResultMap">
+        SELECT
+        p.*, u.username, u.name, u.gender, u.phone, u.role_type, u.status
+        FROM patients p
+        LEFT JOIN users u ON p.user_id = u.user_id
+    </select>
+
+    <!-- 新增患者 -->
+    <insert id="insert" parameterType="com.example.shijiehouduan.entity.Patient" useGeneratedKeys="true" keyProperty="patientId">
+        INSERT INTO patients
+        (user_id, id_card, birth_date, address, emergency_contact, emergency_phone, 
+        medical_history, allergy_history, created_at)
+        VALUES
+        (#{userId}, #{idCard}, #{birthDate}, #{address}, #{emergencyContact}, #{emergencyPhone}, 
+        #{medicalHistory}, #{allergyHistory}, now())
+    </insert>
+
+    <!-- 更新患者 -->
+    <update id="update" parameterType="com.example.shijiehouduan.entity.Patient">
+        UPDATE patients
+        <set>
+            <if test="idCard != null">id_card = #{idCard},</if>
+            <if test="birthDate != null">birth_date = #{birthDate},</if>
+            <if test="address != null">address = #{address},</if>
+            <if test="emergencyContact != null">emergency_contact = #{emergencyContact},</if>
+            <if test="emergencyPhone != null">emergency_phone = #{emergencyPhone},</if>
+            <if test="medicalHistory != null">medical_history = #{medicalHistory},</if>
+            <if test="allergyHistory != null">allergy_history = #{allergyHistory},</if>
+        </set>
+        WHERE patient_id = #{patientId}
+    </update>
+
+    <!-- 删除患者 -->
+    <delete id="deleteById" parameterType="java.lang.Integer">
+        DELETE FROM patients WHERE patient_id = #{patientId}
+    </delete>
+</mapper> 

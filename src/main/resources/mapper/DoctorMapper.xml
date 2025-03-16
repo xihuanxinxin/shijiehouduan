@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.shijiehouduan.dao.DoctorDao">
+    <!-- 结果映射 -->
+    <resultMap id="BaseResultMap" type="com.example.shijiehouduan.entity.Doctor">
+        <id column="doctor_id" property="doctorId"/>
+        <result column="user_id" property="userId"/>
+        <result column="specialty" property="specialty"/>
+        <result column="title" property="title"/>
+        <result column="introduction" property="introduction"/>
+        <result column="schedule" property="schedule"/>
+        <result column="created_at" property="createdAt"/>
+        <association property="user" javaType="com.example.shijiehouduan.entity.User">
+            <id column="user_id" property="userId"/>
+            <result column="username" property="username"/>
+            <result column="name" property="name"/>
+            <result column="gender" property="gender"/>
+            <result column="phone" property="phone"/>
+            <result column="role_type" property="roleType"/>
+            <result column="status" property="status"/>
+        </association>
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        d.doctor_id, d.user_id, d.specialty, d.title, d.introduction, d.schedule, d.created_at
+    </sql>
+    
+    <!-- 关联用户表的查询结果列 -->
+    <sql id="User_Column_List">
+        u.user_id, u.username, u.name, u.gender, u.phone, u.role_type, u.status
+    </sql>
+
+    <!-- 根据ID查询医生 -->
+    <select id="findById" resultMap="BaseResultMap" parameterType="java.lang.Integer">
+        SELECT
+        <include refid="Base_Column_List"/>,
+        <include refid="User_Column_List"/>
+        FROM doctors d
+        LEFT JOIN users u ON d.user_id = u.user_id
+        WHERE d.doctor_id = #{doctorId}
+    </select>
+
+    <!-- 根据用户ID查询医生 -->
+    <select id="findByUserId" resultMap="BaseResultMap" parameterType="java.lang.Integer">
+        SELECT
+        <include refid="Base_Column_List"/>,
+        <include refid="User_Column_List"/>
+        FROM doctors d
+        LEFT JOIN users u ON d.user_id = u.user_id
+        WHERE d.user_id = #{userId}
+    </select>
+
+    <!-- 查询所有医生 -->
+    <select id="findAll" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>,
+        <include refid="User_Column_List"/>
+        FROM doctors d
+        LEFT JOIN users u ON d.user_id = u.user_id
+        ORDER BY d.doctor_id
+    </select>
+
+    <!-- 根据专业查询医生 -->
+    <select id="findBySpecialty" resultMap="BaseResultMap" parameterType="java.lang.String">
+        SELECT
+        <include refid="Base_Column_List"/>,
+        <include refid="User_Column_List"/>
+        FROM doctors d
+        LEFT JOIN users u ON d.user_id = u.user_id
+        WHERE d.specialty = #{specialty}
+        ORDER BY d.doctor_id
+    </select>
+
+    <!-- 根据职称查询医生 -->
+    <select id="findByTitle" resultMap="BaseResultMap" parameterType="java.lang.String">
+        SELECT
+        <include refid="Base_Column_List"/>,
+        <include refid="User_Column_List"/>
+        FROM doctors d
+        LEFT JOIN users u ON d.user_id = u.user_id
+        WHERE d.title = #{title}
+        ORDER BY d.doctor_id
+    </select>
+
+    <!-- 新增医生 -->
+    <insert id="insert" parameterType="com.example.shijiehouduan.entity.Doctor" useGeneratedKeys="true" keyProperty="doctorId">
+        INSERT INTO doctors (
+            user_id, specialty, title, introduction, schedule, created_at
+        ) VALUES (
+            #{userId}, #{specialty}, #{title}, #{introduction}, #{schedule}, #{createdAt}
+        )
+    </insert>
+
+    <!-- 更新医生 -->
+    <update id="update" parameterType="com.example.shijiehouduan.entity.Doctor">
+        UPDATE doctors
+        <set>
+            <if test="userId != null">user_id = #{userId},</if>
+            <if test="specialty != null">specialty = #{specialty},</if>
+            <if test="title != null">title = #{title},</if>
+            <if test="introduction != null">introduction = #{introduction},</if>
+            <if test="schedule != null">schedule = #{schedule},</if>
+        </set>
+        WHERE doctor_id = #{doctorId}
+    </update>
+
+    <!-- 更新医生排班 -->
+    <update id="updateSchedule">
+        UPDATE doctors
+        SET schedule = #{schedule}
+        WHERE doctor_id = #{doctorId}
+    </update>
+
+    <!-- 删除医生 -->
+    <delete id="delete" parameterType="java.lang.Integer">
+        DELETE FROM doctors
+        WHERE doctor_id = #{doctorId}
+    </delete>
+</mapper> 

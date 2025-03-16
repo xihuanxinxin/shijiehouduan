@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>世界后端 - 数据库连接测试</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .card {
+            flex: 1;
+            min-width: 300px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        h2 {
+            color: #3498db;
+            margin-top: 0;
+        }
+        pre {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        code {
+            font-family: 'Courier New', monospace;
+        }
+        .btn {
+            display: inline-block;
+            background-color: #3498db;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 4px;
+            text-decoration: none;
+            margin-top: 10px;
+            cursor: pointer;
+        }
+        .btn:hover {
+            background-color: #2980b9;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f8f9fa;
+            min-height: 100px;
+        }
+        ul {
+            padding-left: 20px;
+        }
+        li {
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>世界后端 - 数据库连接测试</h1>
+    
+    <div class="container">
+        <div class="card">
+            <h2>测试接口</h2>
+            <p>以下是可用的测试接口：</p>
+            <ul>
+                <li>
+                    <a href="test/ping" target="_blank" class="btn">测试API连通性</a>
+                    <p>检查API是否正常工作</p>
+                </li>
+                <li>
+                    <a href="test/db" target="_blank" class="btn">测试数据库连接</a>
+                    <p>检查数据库连接是否正常</p>
+                </li>
+            </ul>
+        </div>
+        
+        <div class="card">
+            <h2>Postman测试</h2>
+            <p>您也可以使用Postman测试以下接口：</p>
+            <ul>
+                <li><strong>GET</strong> http://localhost:8080/shijiehouduan_war_exploded/test/ping</li>
+                <li><strong>GET</strong> http://localhost:8080/shijiehouduan_war_exploded/test/db</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // 如果需要添加JavaScript代码，可以在这里添加
+    </script>
+</body>
+</html> 
