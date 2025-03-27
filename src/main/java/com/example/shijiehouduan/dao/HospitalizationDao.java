@@ -1,6 +1,7 @@
 package com.example.shijiehouduan.dao;
 
 import com.example.shijiehouduan.entity.Hospitalization;
+import org.apache.ibatis.annotations.Param;
 import java.util.List;
 
 /**
@@ -45,12 +46,12 @@ public interface HospitalizationDao {
     /**
      * 更新住院记录状态
      */
-    int updateStatus(Integer hospitalizationId, String status);
+    int updateStatus(@Param("hospitalizationId") Integer hospitalizationId, @Param("status") String status);
     
     /**
      * 更新出院日期
      */
-    int updateDischargeDate(Integer hospitalizationId, java.util.Date dischargeDate);
+    int updateDischargeDate(@Param("hospitalizationId") Integer hospitalizationId, @Param("dischargeDate") java.util.Date dischargeDate);
     
     /**
      * 根据状态查询住院记录列表

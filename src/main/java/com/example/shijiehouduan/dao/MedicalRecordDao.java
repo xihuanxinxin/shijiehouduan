@@ -1,6 +1,7 @@
 package com.example.shijiehouduan.dao;
 
 import com.example.shijiehouduan.entity.MedicalRecord;
+import org.apache.ibatis.annotations.Param;
 import java.util.List;
 
 /**
@@ -40,5 +41,5 @@ public interface MedicalRecordDao {
     /**
      * 更新病历状态
      */
-    int updateStatus(Integer recordId, String status);
+    int updateStatus(@Param("recordId") Integer recordId, @Param("status") String status);
 } 

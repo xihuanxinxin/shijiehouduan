@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.shijiehouduan.dao.PrescriptionDao">
+    
+    <!-- 处方结果映射 -->
+    <resultMap id="PrescriptionResultMap" type="com.example.shijiehouduan.entity.Prescription">
+        <id property="prescriptionId" column="prescription_id" />
+        <result property="recordId" column="record_id" />
+        <result property="patientId" column="patient_id" />
+        <result property="doctorId" column="doctor_id" />
+        <result property="issueDate" column="issue_date" />
+        <result property="diagnosis" column="diagnosis" />
+        <result property="totalFee" column="total_fee" />
+        <result property="status" column="status" />
+        <result property="remarks" column="remarks" />
+        <result property="createdAt" column="created_at" />
+    </resultMap>
+    
+    <!-- 公共查询列 -->
+    <sql id="Base_Column_List">
+        prescription_id, record_id, patient_id, doctor_id, issue_date, 
+        diagnosis, total_fee, status, remarks, created_at
+    </sql>
+    
+    <!-- 根据ID查询处方 -->
+    <select id="findById" resultMap="PrescriptionResultMap">
+        SELECT <include refid="Base_Column_List" />
+        FROM prescriptions
+        WHERE prescription_id = #{prescriptionId}
+    </select>
+    
+    <!-- 根据患者ID查询处方列表 -->
+    <select id="findByPatientId" resultMap="PrescriptionResultMap">
+        SELECT <include refid="Base_Column_List" />
+        FROM prescriptions
+        WHERE patient_id = #{patientId}
+        ORDER BY issue_date DESC
+    </select>
+    
+    <!-- 根据医生ID查询处方列表 -->
+    <select id="findByDoctorId" resultMap="PrescriptionResultMap">
+        SELECT <include refid="Base_Column_List" />
+        FROM prescriptions
+        WHERE doctor_id = #{doctorId}
+        ORDER BY issue_date DESC
+    </select>
+    
+    <!-- 根据病历ID查询处方列表 -->
+    <select id="findByRecordId" resultMap="PrescriptionResultMap">
+        SELECT <include refid="Base_Column_List" />
+        FROM prescriptions
+        WHERE record_id = #{recordId}
+        ORDER BY issue_date DESC
+    </select>
+    
+    <!-- 根据状态查询处方列表 -->
+    <select id="findByStatus" resultMap="PrescriptionResultMap">
+        SELECT <include refid="Base_Column_List" />
+        FROM prescriptions
+        WHERE status = #{status}
+        ORDER BY issue_date DESC
+    </select>
+    
+    <!-- 查询所有处方 -->
+    <select id="findAll" resultMap="PrescriptionResultMap">
+        SELECT <include refid="Base_Column_List" />
+        FROM prescriptions
+        ORDER BY issue_date DESC
+    </select>
+    
+    <!-- 添加处方 -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="prescriptionId">
+        INSERT INTO prescriptions (
+            record_id, patient_id, doctor_id, issue_date, 
+            diagnosis, total_fee, status, remarks
+        ) VALUES (
+            #{recordId}, #{patientId}, #{doctorId}, #{issueDate}, 
+            #{diagnosis}, #{totalFee}, #{status}, #{remarks}
+        )
+    </insert>
+    
+    <!-- 更新处方 -->
+    <update id="update">
+        UPDATE prescriptions
+        <set>
+            <if test="diagnosis != null">diagnosis = #{diagnosis},</if>
+            <if test="totalFee != null">total_fee = #{totalFee},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="remarks != null">remarks = #{remarks},</if>
+        </set>
+        WHERE prescription_id = #{prescriptionId}
+    </update>
+    
+    <!-- 更新处方状态 -->
+    <update id="updateStatus">
+        UPDATE prescriptions
+        SET status = #{status}
+        WHERE prescription_id = #{prescriptionId}
+    </update>
+</mapper> 
