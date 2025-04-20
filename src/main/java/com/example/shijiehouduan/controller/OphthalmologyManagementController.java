@@ -1,13 +1,14 @@
 package com.example.shijiehouduan.controller;
 
+import com.example.shijiehouduan.common.Result;
 import com.example.shijiehouduan.entity.EyeExamination;
 import com.example.shijiehouduan.entity.Surgery;
 import com.example.shijiehouduan.service.EyeExaminationService;
 import com.example.shijiehouduan.service.SurgeryService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletRequest;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -17,7 +18,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/admin/ophthalmology")
-public class OphthalmologyManagementController {
+public class OphthalmologyManagementController extends BaseController {
 
     @Autowired
     private EyeExaminationService eyeExaminationService;
@@ -29,18 +30,17 @@ public class OphthalmologyManagementController {
      * 获取所有眼科检查记录
      */
     @GetMapping("/examinations")
-    public ResponseEntity<Map<String, Object>> getAllEyeExaminations() {
-        Map<String, Object> response = new HashMap<>();
+    public Result getAllEyeExaminations(HttpServletRequest request) {
+        // 验证是否为管理员
+        if (!isAdmin(request)) {
+            return Result.forbidden();
+        }
+        
         try {
             List<EyeExamination> examinations = eyeExaminationService.getAllEyeExaminations();
-            response.put("success", true);
-            response.put("message", "获取眼科检查记录列表成功");
-            response.put("data", examinations);
-            return ResponseEntity.ok(response);
+            return Result.success(examinations);
         } catch (Exception e) {
-            response.put("success", false);
-            response.put("message", "获取眼科检查记录列表失败: " + e.getMessage());
-            return ResponseEntity.badRequest().body(response);
+            return Result.error("获取眼科检查记录列表失败: " + e.getMessage());
         }
     }
 
@@ -48,24 +48,21 @@ public class OphthalmologyManagementController {
      * 根据ID获取眼科检查记录
      */
     @GetMapping("/examinations/{examinationId}")
-    public ResponseEntity<Map<String, Object>> getEyeExaminationById(@PathVariable Integer examinationId) {
-        Map<String, Object> response = new HashMap<>();
+    public Result getEyeExaminationById(@PathVariable Integer examinationId, HttpServletRequest request) {
+        // 验证是否为管理员
+        if (!isAdmin(request)) {
+            return Result.forbidden();
+        }
+        
         try {
             EyeExamination examination = eyeExaminationService.getEyeExaminationById(examinationId);
             if (examination != null) {
-                response.put("success", true);
-                response.put("message", "获取眼科检查记录成功");
-                response.put("data", examination);
-                return ResponseEntity.ok(response);
+                return Result.success(examination);
             } else {
-                response.put("success", false);
-                response.put("message", "眼科检查记录不存在");
-                return ResponseEntity.badRequest().body(response);
+                return Result.error("眼科检查记录不存在");
             }
         } catch (Exception e) {
-            response.put("success", false);
-            response.put("message", "获取眼科检查记录失败: " + e.getMessage());
-            return ResponseEntity.badRequest().body(response);
+            return Result.error("获取眼科检查记录失败: " + e.getMessage());
         }
     }
 
@@ -73,18 +70,17 @@ public class OphthalmologyManagementController {
      * 根据病历ID获取眼科检查记录
      */
     @GetMapping("/examinations/record/{recordId}")
-    public ResponseEntity<Map<String, Object>> getEyeExaminationsByRecordId(@PathVariable Integer recordId) {
-        Map<String, Object> response = new HashMap<>();
+    public Result getEyeExaminationsByRecordId(@PathVariable Integer recordId, HttpServletRequest request) {
+        // 验证是否为管理员
+        if (!isAdmin(request)) {
+            return Result.forbidden();
+        }
+        
         try {
             List<EyeExamination> examinations = eyeExaminationService.getEyeExaminationsByRecordId(recordId);
-            response.put("success", true);
-            response.put("message", "获取眼科检查记录列表成功");
-            response.put("data", examinations);
-            return ResponseEntity.ok(response);
+            return Result.success(examinations);
         } catch (Exception e) {
-            response.put("success", false);
-            response.put("message", "获取眼科检查记录列表失败: " + e.getMessage());
-            return ResponseEntity.badRequest().body(response);
+            return Result.error("获取眼科检查记录列表失败: " + e.getMessage());
         }
     }
 
@@ -92,18 +88,17 @@ public class OphthalmologyManagementController {
      * 根据患者ID获取眼科检查记录
      */
     @GetMapping("/examinations/patient/{patientId}")
-    public ResponseEntity<Map<String, Object>> getEyeExaminationsByPatientId(@PathVariable Integer patientId) {
-        Map<String, Object> response = new HashMap<>();
+    public Result getEyeExaminationsByPatientId(@PathVariable Integer patientId, HttpServletRequest request) {
+        // 验证是否为管理员
+        if (!isAdmin(request)) {
+            return Result.forbidden();
+        }
+        
         try {
             List<EyeExamination> examinations = eyeExaminationService.getEyeExaminationsByPatientId(patientId);
-            response.put("success", true);
-            response.put("message", "获取眼科检查记录列表成功");
-            response.put("data", examinations);
-            return ResponseEntity.ok(response);
+            return Result.success(examinations);
         } catch (Exception e) {
-            response.put("success", false);
-            response.put("message", "获取眼科检查记录列表失败: " + e.getMessage());
-            return ResponseEntity.badRequest().body(response);
+            return Result.error("获取眼科检查记录列表失败: " + e.getMessage());
         }
     }
 
@@ -111,18 +106,17 @@ public class OphthalmologyManagementController {
      * 根据医生ID获取眼科检查记录
      */
     @GetMapping("/examinations/doctor/{doctorId}")
-    public ResponseEntity<Map<String, Object>> getEyeExaminationsByDoctorId(@PathVariable Integer doctorId) {
-        Map<String, Object> response = new HashMap<>();
+    public Result getEyeExaminationsByDoctorId(@PathVariable Integer doctorId, HttpServletRequest request) {
+        // 验证是否为管理员
+        if (!isAdmin(request)) {
+            return Result.forbidden();
+        }
+        
         try {
             List<EyeExamination> examinations = eyeExaminationService.getEyeExaminationsByDoctorId(doctorId);
-            response.put("success", true);
-            response.put("message", "获取眼科检查记录列表成功");
-            response.put("data", examinations);
-            return ResponseEntity.ok(response);
+            return Result.success(examinations);
         } catch (Exception e) {
-            response.put("success", false);
-            response.put("message", "获取眼科检查记录列表失败: " + e.getMessage());
-            return ResponseEntity.badRequest().body(response);
+            return Result.error("获取眼科检查记录列表失败: " + e.getMessage());
         }
     }
 
@@ -130,18 +124,17 @@ public class OphthalmologyManagementController {
      * 获取所有手术记录
      */
     @GetMapping("/surgeries")
-    public ResponseEntity<Map<String, Object>> getAllSurgeries() {
-        Map<String, Object> response = new HashMap<>();
+    public Result getAllSurgeries(HttpServletRequest request) {
+        // 验证是否为管理员
+        if (!isAdmin(request)) {
+            return Result.forbidden();
+        }
+        
         try {
             List<Surgery> surgeries = surgeryService.getAllSurgeries();
-            response.put("success", true);
-            response.put("message", "获取手术记录列表成功");
-            response.put("data", surgeries);
-            return ResponseEntity.ok(response);
+            return Result.success(surgeries);
         } catch (Exception e) {
-            response.put("success", false);
-            response.put("message", "获取手术记录列表失败: " + e.getMessage());
-            return ResponseEntity.badRequest().body(response);
+            return Result.error("获取手术记录列表失败: " + e.getMessage());
         }
     }
 
@@ -149,24 +142,21 @@ public class OphthalmologyManagementController {
      * 根据ID获取手术记录
      */
     @GetMapping("/surgeries/{surgeryId}")
-    public ResponseEntity<Map<String, Object>> getSurgeryById(@PathVariable Integer surgeryId) {
-        Map<String, Object> response = new HashMap<>();
+    public Result getSurgeryById(@PathVariable Integer surgeryId, HttpServletRequest request) {
+        // 验证是否为管理员
+        if (!isAdmin(request)) {
+            return Result.forbidden();
+        }
+        
         try {
             Surgery surgery = surgeryService.getSurgeryById(surgeryId);
             if (surgery != null) {
-                response.put("success", true);
-                response.put("message", "获取手术记录成功");
-                response.put("data", surgery);
-                return ResponseEntity.ok(response);
+                return Result.success(surgery);
             } else {
-                response.put("success", false);
-                response.put("message", "手术记录不存在");
-                return ResponseEntity.badRequest().body(response);
+                return Result.error("手术记录不存在");
             }
         } catch (Exception e) {
-            response.put("success", false);
-            response.put("message", "获取手术记录失败: " + e.getMessage());
-            return ResponseEntity.badRequest().body(response);
+            return Result.error("获取手术记录失败: " + e.getMessage());
         }
     }
 
@@ -174,18 +164,17 @@ public class OphthalmologyManagementController {
      * 根据病历ID获取手术记录
      */
     @GetMapping("/surgeries/record/{recordId}")
-    public ResponseEntity<Map<String, Object>> getSurgeriesByRecordId(@PathVariable Integer recordId) {
-        Map<String, Object> response = new HashMap<>();
+    public Result getSurgeriesByRecordId(@PathVariable Integer recordId, HttpServletRequest request) {
+        // 验证是否为管理员
+        if (!isAdmin(request)) {
+            return Result.forbidden();
+        }
+        
         try {
             List<Surgery> surgeries = surgeryService.getSurgeriesByRecordId(recordId);
-            response.put("success", true);
-            response.put("message", "获取手术记录列表成功");
-            response.put("data", surgeries);
-            return ResponseEntity.ok(response);
+            return Result.success(surgeries);
         } catch (Exception e) {
-            response.put("success", false);
-            response.put("message", "获取手术记录列表失败: " + e.getMessage());
-            return ResponseEntity.badRequest().body(response);
+            return Result.error("获取手术记录列表失败: " + e.getMessage());
         }
     }
 
@@ -193,18 +182,17 @@ public class OphthalmologyManagementController {
      * 根据患者ID获取手术记录
      */
     @GetMapping("/surgeries/patient/{patientId}")
-    public ResponseEntity<Map<String, Object>> getSurgeriesByPatientId(@PathVariable Integer patientId) {
-        Map<String, Object> response = new HashMap<>();
+    public Result getSurgeriesByPatientId(@PathVariable Integer patientId, HttpServletRequest request) {
+        // 验证是否为管理员
+        if (!isAdmin(request)) {
+            return Result.forbidden();
+        }
+        
         try {
             List<Surgery> surgeries = surgeryService.getSurgeriesByPatientId(patientId);
-            response.put("success", true);
-            response.put("message", "获取手术记录列表成功");
-            response.put("data", surgeries);
-            return ResponseEntity.ok(response);
+            return Result.success(surgeries);
         } catch (Exception e) {
-            response.put("success", false);
-            response.put("message", "获取手术记录列表失败: " + e.getMessage());
-            return ResponseEntity.badRequest().body(response);
+            return Result.error("获取手术记录列表失败: " + e.getMessage());
         }
     }
 
@@ -212,18 +200,17 @@ public class OphthalmologyManagementController {
      * 根据医生ID获取手术记录
      */
     @GetMapping("/surgeries/doctor/{doctorId}")
-    public ResponseEntity<Map<String, Object>> getSurgeriesByDoctorId(@PathVariable Integer doctorId) {
-        Map<String, Object> response = new HashMap<>();
+    public Result getSurgeriesByDoctorId(@PathVariable Integer doctorId, HttpServletRequest request) {
+        // 验证是否为管理员
+        if (!isAdmin(request)) {
+            return Result.forbidden();
+        }
+        
         try {
             List<Surgery> surgeries = surgeryService.getSurgeriesByDoctorId(doctorId);
-            response.put("success", true);
-            response.put("message", "获取手术记录列表成功");
-            response.put("data", surgeries);
-            return ResponseEntity.ok(response);
+            return Result.success(surgeries);
         } catch (Exception e) {
-            response.put("success", false);
-            response.put("message", "获取手术记录列表失败: " + e.getMessage());
-            return ResponseEntity.badRequest().body(response);
+            return Result.error("获取手术记录列表失败: " + e.getMessage());
         }
     }
 
@@ -231,18 +218,17 @@ public class OphthalmologyManagementController {
      * 根据状态获取手术记录
      */
     @GetMapping("/surgeries/status/{status}")
-    public ResponseEntity<Map<String, Object>> getSurgeriesByStatus(@PathVariable String status) {
-        Map<String, Object> response = new HashMap<>();
+    public Result getSurgeriesByStatus(@PathVariable String status, HttpServletRequest request) {
+        // 验证是否为管理员
+        if (!isAdmin(request)) {
+            return Result.forbidden();
+        }
+        
         try {
             List<Surgery> surgeries = surgeryService.getSurgeriesByStatus(status);
-            response.put("success", true);
-            response.put("message", "获取手术记录列表成功");
-            response.put("data", surgeries);
-            return ResponseEntity.ok(response);
+            return Result.success(surgeries);
         } catch (Exception e) {
-            response.put("success", false);
-            response.put("message", "获取手术记录列表失败: " + e.getMessage());
-            return ResponseEntity.badRequest().body(response);
+            return Result.error("获取手术记录列表失败: " + e.getMessage());
         }
     }
 
@@ -250,18 +236,17 @@ public class OphthalmologyManagementController {
      * 根据手术类型获取手术记录
      */
     @GetMapping("/surgeries/type")
-    public ResponseEntity<Map<String, Object>> getSurgeriesByType(@RequestParam String surgeryType) {
-        Map<String, Object> response = new HashMap<>();
+    public Result getSurgeriesByType(@RequestParam String surgeryType, HttpServletRequest request) {
+        // 验证是否为管理员
+        if (!isAdmin(request)) {
+            return Result.forbidden();
+        }
+        
         try {
             List<Surgery> surgeries = surgeryService.getSurgeriesByType(surgeryType);
-            response.put("success", true);
-            response.put("message", "获取手术记录列表成功");
-            response.put("data", surgeries);
-            return ResponseEntity.ok(response);
+            return Result.success(surgeries);
         } catch (Exception e) {
-            response.put("success", false);
-            response.put("message", "获取手术记录列表失败: " + e.getMessage());
-            return ResponseEntity.badRequest().body(response);
+            return Result.error("获取手术记录列表失败: " + e.getMessage());
         }
     }
 
@@ -269,8 +254,12 @@ public class OphthalmologyManagementController {
      * 获取手术统计数据
      */
     @GetMapping("/surgeries/statistics")
-    public ResponseEntity<Map<String, Object>> getSurgeryStatistics() {
-        Map<String, Object> response = new HashMap<>();
+    public Result getSurgeryStatistics(HttpServletRequest request) {
+        // 验证是否为管理员
+        if (!isAdmin(request)) {
+            return Result.forbidden();
+        }
+        
         try {
             Map<String, Object> statistics = new HashMap<>();
             
@@ -286,14 +275,9 @@ public class OphthalmologyManagementController {
             List<Map<String, Object>> typeStats = surgeryService.countSurgeriesByType();
             statistics.put("typeStats", typeStats);
             
-            response.put("success", true);
-            response.put("message", "获取手术统计数据成功");
-            response.put("data", statistics);
-            return ResponseEntity.ok(response);
+            return Result.success(statistics);
         } catch (Exception e) {
-            response.put("success", false);
-            response.put("message", "获取手术统计数据失败: " + e.getMessage());
-            return ResponseEntity.badRequest().body(response);
+            return Result.error("获取手术统计数据失败: " + e.getMessage());
         }
     }
 
@@ -301,8 +285,12 @@ public class OphthalmologyManagementController {
      * 获取眼科检查统计数据
      */
     @GetMapping("/examinations/statistics")
-    public ResponseEntity<Map<String, Object>> getEyeExaminationStatistics() {
-        Map<String, Object> response = new HashMap<>();
+    public Result getEyeExaminationStatistics(HttpServletRequest request) {
+        // 验证是否为管理员
+        if (!isAdmin(request)) {
+            return Result.forbidden();
+        }
+        
         try {
             Map<String, Object> statistics = new HashMap<>();
             
@@ -314,14 +302,9 @@ public class OphthalmologyManagementController {
             List<Map<String, Object>> doctorStats = eyeExaminationService.countEyeExaminationsByDoctor();
             statistics.put("doctorStats", doctorStats);
             
-            response.put("success", true);
-            response.put("message", "获取眼科检查统计数据成功");
-            response.put("data", statistics);
-            return ResponseEntity.ok(response);
+            return Result.success(statistics);
         } catch (Exception e) {
-            response.put("success", false);
-            response.put("message", "获取眼科检查统计数据失败: " + e.getMessage());
-            return ResponseEntity.badRequest().body(response);
+            return Result.error("获取眼科检查统计数据失败: " + e.getMessage());
         }
     }
 } 

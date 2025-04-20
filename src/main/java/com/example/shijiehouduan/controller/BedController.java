@@ -7,7 +7,7 @@ import com.example.shijiehouduan.service.BedService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import javax.servlet.http.HttpSession;
+import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 
 /**
@@ -15,7 +15,7 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/api/bed")
-public class BedController {
+public class BedController extends BaseController {
 
     @Autowired
     private BedService bedService;
@@ -24,23 +24,23 @@ public class BedController {
      * 获取所有床位
      * @param status 床位状态（可选）
      * @param roomNumber 房间号（可选）
-     * @param session HTTP会话
+     * @param request HTTP请求
      * @return 床位列表
      */
     @GetMapping("/list")
     public Result getAllBeds(
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String roomNumber,
-            HttpSession session) {
+            HttpServletRequest request) {
         
         // 获取当前登录用户
-        User currentUser = (User) session.getAttribute("user");
+        User currentUser = getCurrentUser(request);
         if (currentUser == null) {
             return Result.unauthorized();
         }
 
         // 只有医生和管理员可以查看床位信息
-        if (!"医生".equals(currentUser.getRoleType()) && !"管理员".equals(currentUser.getRoleType())) {
+        if (!hasAnyRole(request, ROLE_DOCTOR, ROLE_ADMIN)) {
             return Result.forbidden();
         }
 
@@ -65,19 +65,19 @@ public class BedController {
     /**
      * 获取床位详情
      * @param bedId 床位ID
-     * @param session HTTP会话
+     * @param request HTTP请求
      * @return 床位详情
      */
     @GetMapping("/{bedId}")
-    public Result getBed(@PathVariable Integer bedId, HttpSession session) {
+    public Result getBed(@PathVariable Integer bedId, HttpServletRequest request) {
         // 获取当前登录用户
-        User currentUser = (User) session.getAttribute("user");
+        User currentUser = getCurrentUser(request);
         if (currentUser == null) {
             return Result.unauthorized();
         }
 
         // 只有医生和管理员可以查看床位信息
-        if (!"医生".equals(currentUser.getRoleType()) && !"管理员".equals(currentUser.getRoleType())) {
+        if (!hasAnyRole(request, ROLE_DOCTOR, ROLE_ADMIN)) {
             return Result.forbidden();
         }
 
@@ -92,19 +92,19 @@ public class BedController {
 
     /**
      * 获取空闲床位
-     * @param session HTTP会话
+     * @param request HTTP请求
      * @return 空闲床位列表
      */
     @GetMapping("/available")
-    public Result getAvailableBeds(HttpSession session) {
+    public Result getAvailableBeds(HttpServletRequest request) {
         // 获取当前登录用户
-        User currentUser = (User) session.getAttribute("user");
+        User currentUser = getCurrentUser(request);
         if (currentUser == null) {
             return Result.unauthorized();
         }
 
         // 只有医生和管理员可以查看床位信息
-        if (!"医生".equals(currentUser.getRoleType()) && !"管理员".equals(currentUser.getRoleType())) {
+        if (!hasAnyRole(request, ROLE_DOCTOR, ROLE_ADMIN)) {
             return Result.forbidden();
         }
 
@@ -115,19 +115,19 @@ public class BedController {
 
     /**
      * 获取占用床位
-     * @param session HTTP会话
+     * @param request HTTP请求
      * @return 占用床位列表
      */
     @GetMapping("/occupied")
-    public Result getOccupiedBeds(HttpSession session) {
+    public Result getOccupiedBeds(HttpServletRequest request) {
         // 获取当前登录用户
-        User currentUser = (User) session.getAttribute("user");
+        User currentUser = getCurrentUser(request);
         if (currentUser == null) {
             return Result.unauthorized();
         }
 
         // 只有医生和管理员可以查看床位信息
-        if (!"医生".equals(currentUser.getRoleType()) && !"管理员".equals(currentUser.getRoleType())) {
+        if (!hasAnyRole(request, ROLE_DOCTOR, ROLE_ADMIN)) {
             return Result.forbidden();
         }
 
@@ -138,19 +138,19 @@ public class BedController {
 
     /**
      * 获取维修中床位
-     * @param session HTTP会话
+     * @param request HTTP请求
      * @return 维修中床位列表
      */
     @GetMapping("/maintenance")
-    public Result getMaintenanceBeds(HttpSession session) {
+    public Result getMaintenanceBeds(HttpServletRequest request) {
         // 获取当前登录用户
-        User currentUser = (User) session.getAttribute("user");
+        User currentUser = getCurrentUser(request);
         if (currentUser == null) {
             return Result.unauthorized();
         }
 
         // 只有医生和管理员可以查看床位信息
-        if (!"医生".equals(currentUser.getRoleType()) && !"管理员".equals(currentUser.getRoleType())) {
+        if (!hasAnyRole(request, ROLE_DOCTOR, ROLE_ADMIN)) {
             return Result.forbidden();
         }
 
@@ -162,19 +162,19 @@ public class BedController {
     /**
      * 获取患者当前床位
      * @param patientId 患者ID
-     * @param session HTTP会话
+     * @param request HTTP请求
      * @return 患者当前床位
      */
     @GetMapping("/patient/{patientId}")
-    public Result getPatientBed(@PathVariable Integer patientId, HttpSession session) {
+    public Result getPatientBed(@PathVariable Integer patientId, HttpServletRequest request) {
         // 获取当前登录用户
-        User currentUser = (User) session.getAttribute("user");
+        User currentUser = getCurrentUser(request);
         if (currentUser == null) {
             return Result.unauthorized();
         }
 
         // 只有医生和管理员可以查看床位信息
-        if (!"医生".equals(currentUser.getRoleType()) && !"管理员".equals(currentUser.getRoleType())) {
+        if (!hasAnyRole(request, ROLE_DOCTOR, ROLE_ADMIN)) {
             return Result.forbidden();
         }
 

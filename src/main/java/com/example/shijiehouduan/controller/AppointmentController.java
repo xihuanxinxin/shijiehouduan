@@ -12,7 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
-import javax.servlet.http.HttpSession;
+import javax.servlet.http.HttpServletRequest;
 import java.util.Date;
 import java.util.List;
 
@@ -21,7 +21,7 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/api/appointment")
-public class AppointmentController {
+public class AppointmentController extends BaseController {
 
     @Autowired
     private AppointmentService appointmentService;
@@ -37,7 +37,7 @@ public class AppointmentController {
      * @param patientId 患者ID（医生和管理员必填，患者不填则查询自己）
      * @param doctorId 医生ID（可选）
      * @param status 状态（可选）
-     * @param session HTTP会话
+     * @param request HTTP请求
      * @return 预约列表
      */
     @GetMapping("/list")
@@ -45,10 +45,10 @@ public class AppointmentController {
             @RequestParam(required = false) Integer patientId,
             @RequestParam(required = false) Integer doctorId,
             @RequestParam(required = false) String status,
-            HttpSession session) {
+            HttpServletRequest request) {
         
         // 获取当前登录用户
-        User currentUser = (User) session.getAttribute("user");
+        User currentUser = getCurrentUser(request);
         if (currentUser == null) {
             return Result.unauthorized();
         }
@@ -56,7 +56,7 @@ public class AppointmentController {
         // 根据角色和参数判断查询哪些预约
         List<Appointment> appointments = null;
         
-        if ("患者".equals(currentUser.getRoleType())) {
+        if (isPatient(request)) {
             // 患者只能查看自己的预约
             Patient patient = patientService.getPatientByUserId(currentUser.getUserId());
             if (patient == null) {
@@ -81,7 +81,7 @@ public class AppointmentController {
             if (status != null && !status.isEmpty()) {
                 appointments.removeIf(a -> !a.getStatus().equals(status));
             }
-        } else if ("医生".equals(currentUser.getRoleType())) {
+        } else if (isDoctor(request)) {
             // 医生可以查看自己的预约，或者指定患者的预约
             Doctor doctor = doctorService.getDoctorByUserId(currentUser.getUserId());
             if (doctor == null) {
@@ -102,7 +102,7 @@ public class AppointmentController {
             if (status != null && !status.isEmpty()) {
                 appointments.removeIf(a -> !a.getStatus().equals(status));
             }
-        } else if ("管理员".equals(currentUser.getRoleType())) {
+        } else if (isAdmin(request)) {
             // 管理员可以查看所有预约
             if (patientId != null) {
                 // 查询指定患者的预约
@@ -127,13 +127,13 @@ public class AppointmentController {
     /**
      * 获取预约详情
      * @param appointmentId 预约ID
-     * @param session HTTP会话
+     * @param request HTTP请求
      * @return 预约详情
      */
     @GetMapping("/{appointmentId}")
-    public Result getAppointment(@PathVariable Integer appointmentId, HttpSession session) {
+    public Result getAppointment(@PathVariable Integer appointmentId, HttpServletRequest request) {
         // 获取当前登录用户
-        User currentUser = (User) session.getAttribute("user");
+        User currentUser = getCurrentUser(request);
         if (currentUser == null) {
             return Result.unauthorized();
         }
@@ -145,19 +145,19 @@ public class AppointmentController {
         }
 
         // 根据角色判断是否有权限查看
-        if ("患者".equals(currentUser.getRoleType())) {
+        if (isPatient(request)) {
             // 患者只能查看自己的预约
             Patient patient = patientService.getPatientByUserId(currentUser.getUserId());
             if (patient == null || !patient.getPatientId().equals(appointment.getPatientId())) {
                 return Result.forbidden();
             }
-        } else if ("医生".equals(currentUser.getRoleType())) {
+        } else if (isDoctor(request)) {
             // 医生只能查看自己的预约
             Doctor doctor = doctorService.getDoctorByUserId(currentUser.getUserId());
             if (doctor == null || !doctor.getDoctorId().equals(appointment.getDoctorId())) {
                 return Result.forbidden();
             }
-        } else if ("管理员".equals(currentUser.getRoleType())) {
+        } else if (isAdmin(request)) {
             // 管理员可以查看所有预约
         } else {
             return Result.forbidden();
@@ -169,13 +169,13 @@ public class AppointmentController {
     /**
      * 添加预约
      * @param appointment 预约信息
-     * @param session HTTP会话
+     * @param request HTTP请求
      * @return 添加结果
      */
     @PostMapping("/add")
-    public Result addAppointment(@RequestBody Appointment appointment, HttpSession session) {
+    public Result addAppointment(@RequestBody Appointment appointment, HttpServletRequest request) {
         // 获取当前登录用户
-        User currentUser = (User) session.getAttribute("user");
+        User currentUser = getCurrentUser(request);
         if (currentUser == null) {
             return Result.unauthorized();
         }
@@ -195,14 +195,14 @@ public class AppointmentController {
         }
 
         // 根据角色设置患者ID
-        if ("患者".equals(currentUser.getRoleType())) {
+        if (isPatient(request)) {
             // 患者只能为自己预约
             Patient patient = patientService.getPatientByUserId(currentUser.getUserId());
             if (patient == null) {
                 return Result.error("患者信息不存在");
             }
             appointment.setPatientId(patient.getPatientId());
-        } else if ("医生".equals(currentUser.getRoleType()) || "管理员".equals(currentUser.getRoleType())) {
+        } else if (hasAnyRole(request, ROLE_DOCTOR, ROLE_ADMIN)) {
             // 医生和管理员可以为患者预约，需要指定患者ID
             if (appointment.getPatientId() == null) {
                 return Result.validateFailed("请选择患者");
@@ -223,13 +223,13 @@ public class AppointmentController {
     /**
      * 更新预约
      * @param appointment 预约信息
-     * @param session HTTP会话
+     * @param request HTTP请求
      * @return 更新结果
      */
     @PutMapping("/update")
-    public Result updateAppointment(@RequestBody Appointment appointment, HttpSession session) {
+    public Result updateAppointment(@RequestBody Appointment appointment, HttpServletRequest request) {
         // 获取当前登录用户
-        User currentUser = (User) session.getAttribute("user");
+        User currentUser = getCurrentUser(request);
         if (currentUser == null) {
             return Result.unauthorized();
         }
@@ -246,7 +246,7 @@ public class AppointmentController {
         }
 
         // 根据角色判断是否有权限更新
-        if ("患者".equals(currentUser.getRoleType())) {
+        if (isPatient(request)) {
             // 患者只能更新自己的预约，且不能修改患者ID和医生ID
             Patient patient = patientService.getPatientByUserId(currentUser.getUserId());
             if (patient == null || !patient.getPatientId().equals(originalAppointment.getPatientId())) {
@@ -261,7 +261,7 @@ public class AppointmentController {
             if (appointment.getStatus() != null && !appointment.getStatus().equals("已取消")) {
                 return Result.validateFailed("患者只能取消预约");
             }
-        } else if ("医生".equals(currentUser.getRoleType())) {
+        } else if (isDoctor(request)) {
             // 医生只能更新自己的预约，且不能修改患者ID和医生ID
             Doctor doctor = doctorService.getDoctorByUserId(currentUser.getUserId());
             if (doctor == null || !doctor.getDoctorId().equals(originalAppointment.getDoctorId())) {
@@ -271,7 +271,7 @@ public class AppointmentController {
             // 不允许修改患者ID和医生ID
             appointment.setPatientId(originalAppointment.getPatientId());
             appointment.setDoctorId(originalAppointment.getDoctorId());
-        } else if ("管理员".equals(currentUser.getRoleType())) {
+        } else if (isAdmin(request)) {
             // 管理员可以更新所有预约
         } else {
             return Result.forbidden();
@@ -289,13 +289,13 @@ public class AppointmentController {
     /**
      * 取消预约
      * @param appointmentId 预约ID
-     * @param session HTTP会话
+     * @param request HTTP请求
      * @return 取消结果
      */
     @PutMapping("/cancel/{appointmentId}")
-    public Result cancelAppointment(@PathVariable Integer appointmentId, HttpSession session) {
+    public Result cancelAppointment(@PathVariable Integer appointmentId, HttpServletRequest request) {
         // 获取当前登录用户
-        User currentUser = (User) session.getAttribute("user");
+        User currentUser = getCurrentUser(request);
         if (currentUser == null) {
             return Result.unauthorized();
         }
@@ -307,19 +307,19 @@ public class AppointmentController {
         }
 
         // 根据角色判断是否有权限取消
-        if ("患者".equals(currentUser.getRoleType())) {
+        if (isPatient(request)) {
             // 患者只能取消自己的预约
             Patient patient = patientService.getPatientByUserId(currentUser.getUserId());
             if (patient == null || !patient.getPatientId().equals(appointment.getPatientId())) {
                 return Result.forbidden();
             }
-        } else if ("医生".equals(currentUser.getRoleType())) {
+        } else if (isDoctor(request)) {
             // 医生只能取消自己的预约
             Doctor doctor = doctorService.getDoctorByUserId(currentUser.getUserId());
             if (doctor == null || !doctor.getDoctorId().equals(appointment.getDoctorId())) {
                 return Result.forbidden();
             }
-        } else if ("管理员".equals(currentUser.getRoleType())) {
+        } else if (isAdmin(request)) {
             // 管理员可以取消所有预约
         } else {
             return Result.forbidden();
@@ -337,13 +337,13 @@ public class AppointmentController {
     /**
      * 确认预约
      * @param appointmentId 预约ID
-     * @param session HTTP会话
+     * @param request HTTP请求
      * @return 确认结果
      */
     @PutMapping("/confirm/{appointmentId}")
-    public Result confirmAppointment(@PathVariable Integer appointmentId, HttpSession session) {
+    public Result confirmAppointment(@PathVariable Integer appointmentId, HttpServletRequest request) {
         // 获取当前登录用户
-        User currentUser = (User) session.getAttribute("user");
+        User currentUser = getCurrentUser(request);
         if (currentUser == null) {
             return Result.unauthorized();
         }
@@ -355,13 +355,13 @@ public class AppointmentController {
         }
 
         // 只有医生和管理员可以确认预约
-        if ("医生".equals(currentUser.getRoleType())) {
+        if (isDoctor(request)) {
             // 医生只能确认自己的预约
             Doctor doctor = doctorService.getDoctorByUserId(currentUser.getUserId());
             if (doctor == null || !doctor.getDoctorId().equals(appointment.getDoctorId())) {
                 return Result.forbidden();
             }
-        } else if ("管理员".equals(currentUser.getRoleType())) {
+        } else if (isAdmin(request)) {
             // 管理员可以确认所有预约
         } else {
             return Result.forbidden();
@@ -379,13 +379,13 @@ public class AppointmentController {
     /**
      * 完成预约
      * @param appointmentId 预约ID
-     * @param session HTTP会话
+     * @param request HTTP请求
      * @return 完成结果
      */
     @PutMapping("/complete/{appointmentId}")
-    public Result completeAppointment(@PathVariable Integer appointmentId, HttpSession session) {
+    public Result completeAppointment(@PathVariable Integer appointmentId, HttpServletRequest request) {
         // 获取当前登录用户
-        User currentUser = (User) session.getAttribute("user");
+        User currentUser = getCurrentUser(request);
         if (currentUser == null) {
             return Result.unauthorized();
         }
@@ -397,13 +397,13 @@ public class AppointmentController {
         }
 
         // 只有医生和管理员可以完成预约
-        if ("医生".equals(currentUser.getRoleType())) {
+        if (isDoctor(request)) {
             // 医生只能完成自己的预约
             Doctor doctor = doctorService.getDoctorByUserId(currentUser.getUserId());
             if (doctor == null || !doctor.getDoctorId().equals(appointment.getDoctorId())) {
                 return Result.forbidden();
             }
-        } else if ("管理员".equals(currentUser.getRoleType())) {
+        } else if (isAdmin(request)) {
             // 管理员可以完成所有预约
         } else {
             return Result.forbidden();
@@ -422,18 +422,17 @@ public class AppointmentController {
      * 查询医生某天的预约情况
      * @param doctorId 医生ID
      * @param date 日期
-     * @param session HTTP会话
+     * @param request HTTP请求
      * @return 预约列表
      */
     @GetMapping("/doctor/schedule")
     public Result getDoctorSchedule(
             @RequestParam Integer doctorId,
             @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") Date date,
-            HttpSession session) {
+            HttpServletRequest request) {
         
-        // 获取当前登录用户
-        User currentUser = (User) session.getAttribute("user");
-        if (currentUser == null) {
+        // 验证用户是否已登录
+        if (getCurrentUser(request) == null) {
             return Result.unauthorized();
         }
 

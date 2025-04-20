@@ -1,13 +1,14 @@
 package com.example.shijiehouduan.controller;
 
+import com.example.shijiehouduan.common.Result;
 import com.example.shijiehouduan.entity.Medicine;
 import com.example.shijiehouduan.entity.PrescriptionMedicine;
 import com.example.shijiehouduan.service.MedicineService;
 import com.example.shijiehouduan.service.PrescriptionMedicineService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletRequest;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -17,7 +18,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/admin/medicines")
-public class MedicineManagementController {
+public class MedicineManagementController extends BaseController {
 
     @Autowired
     private MedicineService medicineService;
@@ -29,18 +30,17 @@ public class MedicineManagementController {
      * 获取所有药品
      */
     @GetMapping("")
-    public ResponseEntity<Map<String, Object>> getAllMedicines() {
-        Map<String, Object> response = new HashMap<>();
+    public Result getAllMedicines(HttpServletRequest request) {
+        // 验证是否为管理员
+        if (!isAdmin(request)) {
+            return Result.forbidden();
+        }
+        
         try {
             List<Medicine> medicines = medicineService.getAllMedicines();
-            response.put("success", true);
-            response.put("message", "获取药品列表成功");
-            response.put("data", medicines);
-            return ResponseEntity.ok(response);
+            return Result.success(medicines);
         } catch (Exception e) {
-            response.put("success", false);
-            response.put("message", "获取药品列表失败: " + e.getMessage());
-            return ResponseEntity.badRequest().body(response);
+            return Result.error("获取药品列表失败: " + e.getMessage());
         }
     }
 
@@ -48,24 +48,21 @@ public class MedicineManagementController {
      * 根据ID获取药品
      */
     @GetMapping("/{medicineId}")
-    public ResponseEntity<Map<String, Object>> getMedicineById(@PathVariable Integer medicineId) {
-        Map<String, Object> response = new HashMap<>();
+    public Result getMedicineById(@PathVariable Integer medicineId, HttpServletRequest request) {
+        // 验证是否为管理员
+        if (!isAdmin(request)) {
+            return Result.forbidden();
+        }
+        
         try {
             Medicine medicine = medicineService.getMedicineById(medicineId);
             if (medicine != null) {
-                response.put("success", true);
-                response.put("message", "获取药品成功");
-                response.put("data", medicine);
-                return ResponseEntity.ok(response);
+                return Result.success(medicine);
             } else {
-                response.put("success", false);
-                response.put("message", "药品不存在");
-                return ResponseEntity.badRequest().body(response);
+                return Result.error("药品不存在");
             }
         } catch (Exception e) {
-            response.put("success", false);
-            response.put("message", "获取药品失败: " + e.getMessage());
-            return ResponseEntity.badRequest().body(response);
+            return Result.error("获取药品失败: " + e.getMessage());
         }
     }
 
@@ -73,18 +70,17 @@ public class MedicineManagementController {
      * 根据名称搜索药品
      */
     @GetMapping("/search")
-    public ResponseEntity<Map<String, Object>> searchMedicinesByName(@RequestParam String name) {
-        Map<String, Object> response = new HashMap<>();
+    public Result searchMedicinesByName(@RequestParam String name, HttpServletRequest request) {
+        // 验证是否为管理员
+        if (!isAdmin(request)) {
+            return Result.forbidden();
+        }
+        
         try {
             List<Medicine> medicines = medicineService.getMedicinesByName(name);
-            response.put("success", true);
-            response.put("message", "搜索药品成功");
-            response.put("data", medicines);
-            return ResponseEntity.ok(response);
+            return Result.success(medicines);
         } catch (Exception e) {
-            response.put("success", false);
-            response.put("message", "搜索药品失败: " + e.getMessage());
-            return ResponseEntity.badRequest().body(response);
+            return Result.error("搜索药品失败: " + e.getMessage());
         }
     }
 
@@ -92,18 +88,17 @@ public class MedicineManagementController {
      * 根据生产厂家搜索药品
      */
     @GetMapping("/manufacturer")
-    public ResponseEntity<Map<String, Object>> searchMedicinesByManufacturer(@RequestParam String manufacturer) {
-        Map<String, Object> response = new HashMap<>();
+    public Result searchMedicinesByManufacturer(@RequestParam String manufacturer, HttpServletRequest request) {
+        // 验证是否为管理员
+        if (!isAdmin(request)) {
+            return Result.forbidden();
+        }
+        
         try {
             List<Medicine> medicines = medicineService.getMedicinesByManufacturer(manufacturer);
-            response.put("success", true);
-            response.put("message", "搜索药品成功");
-            response.put("data", medicines);
-            return ResponseEntity.ok(response);
+            return Result.success(medicines);
         } catch (Exception e) {
-            response.put("success", false);
-            response.put("message", "搜索药品失败: " + e.getMessage());
-            return ResponseEntity.badRequest().body(response);
+            return Result.error("搜索药品失败: " + e.getMessage());
         }
     }
 
@@ -111,18 +106,17 @@ public class MedicineManagementController {
      * 获取库存不足的药品
      */
     @GetMapping("/low-stock")
-    public ResponseEntity<Map<String, Object>> getLowStockMedicines(@RequestParam(defaultValue = "10") Integer threshold) {
-        Map<String, Object> response = new HashMap<>();
+    public Result getLowStockMedicines(@RequestParam(defaultValue = "10") Integer threshold, HttpServletRequest request) {
+        // 验证是否为管理员
+        if (!isAdmin(request)) {
+            return Result.forbidden();
+        }
+        
         try {
             List<Medicine> medicines = medicineService.getLowStockMedicines(threshold);
-            response.put("success", true);
-            response.put("message", "获取库存不足药品成功");
-            response.put("data", medicines);
-            return ResponseEntity.ok(response);
+            return Result.success(medicines);
         } catch (Exception e) {
-            response.put("success", false);
-            response.put("message", "获取库存不足药品失败: " + e.getMessage());
-            return ResponseEntity.badRequest().body(response);
+            return Result.error("获取库存不足药品失败: " + e.getMessage());
         }
     }
 
@@ -130,18 +124,17 @@ public class MedicineManagementController {
      * 获取即将过期的药品
      */
     @GetMapping("/near-expiry")
-    public ResponseEntity<Map<String, Object>> getNearExpiryMedicines() {
-        Map<String, Object> response = new HashMap<>();
+    public Result getNearExpiryMedicines(HttpServletRequest request) {
+        // 验证是否为管理员
+        if (!isAdmin(request)) {
+            return Result.forbidden();
+        }
+        
         try {
             List<Medicine> medicines = medicineService.getNearExpiryMedicines();
-            response.put("success", true);
-            response.put("message", "获取即将过期药品成功");
-            response.put("data", medicines);
-            return ResponseEntity.ok(response);
+            return Result.success(medicines);
         } catch (Exception e) {
-            response.put("success", false);
-            response.put("message", "获取即将过期药品失败: " + e.getMessage());
-            return ResponseEntity.badRequest().body(response);
+            return Result.error("获取即将过期药品失败: " + e.getMessage());
         }
     }
 
@@ -149,24 +142,21 @@ public class MedicineManagementController {
      * 添加药品
      */
     @PostMapping("")
-    public ResponseEntity<Map<String, Object>> addMedicine(@RequestBody Medicine medicine) {
-        Map<String, Object> response = new HashMap<>();
+    public Result addMedicine(@RequestBody Medicine medicine, HttpServletRequest request) {
+        // 验证是否为管理员
+        if (!isAdmin(request)) {
+            return Result.forbidden();
+        }
+        
         try {
             boolean result = medicineService.addMedicine(medicine);
             if (result) {
-                response.put("success", true);
-                response.put("message", "添加药品成功");
-                response.put("data", medicine);
-                return ResponseEntity.ok(response);
+                return Result.success(medicine);
             } else {
-                response.put("success", false);
-                response.put("message", "添加药品失败");
-                return ResponseEntity.badRequest().body(response);
+                return Result.error("添加药品失败");
             }
         } catch (Exception e) {
-            response.put("success", false);
-            response.put("message", "添加药品失败: " + e.getMessage());
-            return ResponseEntity.badRequest().body(response);
+            return Result.error("添加药品失败: " + e.getMessage());
         }
     }
 
@@ -174,24 +164,22 @@ public class MedicineManagementController {
      * 更新药品
      */
     @PutMapping("/{medicineId}")
-    public ResponseEntity<Map<String, Object>> updateMedicine(@PathVariable Integer medicineId, @RequestBody Medicine medicine) {
-        Map<String, Object> response = new HashMap<>();
+    public Result updateMedicine(@PathVariable Integer medicineId, @RequestBody Medicine medicine, HttpServletRequest request) {
+        // 验证是否为管理员
+        if (!isAdmin(request)) {
+            return Result.forbidden();
+        }
+        
         try {
             medicine.setMedicineId(medicineId);
             boolean result = medicineService.updateMedicine(medicine);
             if (result) {
-                response.put("success", true);
-                response.put("message", "更新药品成功");
-                return ResponseEntity.ok(response);
+                return Result.success("更新药品成功");
             } else {
-                response.put("success", false);
-                response.put("message", "更新药品失败，药品不存在");
-                return ResponseEntity.badRequest().body(response);
+                return Result.error("更新药品失败，药品不存在");
             }
         } catch (Exception e) {
-            response.put("success", false);
-            response.put("message", "更新药品失败: " + e.getMessage());
-            return ResponseEntity.badRequest().body(response);
+            return Result.error("更新药品失败: " + e.getMessage());
         }
     }
 
@@ -199,23 +187,21 @@ public class MedicineManagementController {
      * 更新药品库存
      */
     @PutMapping("/{medicineId}/stock")
-    public ResponseEntity<Map<String, Object>> updateMedicineStock(@PathVariable Integer medicineId, @RequestParam Integer stock) {
-        Map<String, Object> response = new HashMap<>();
+    public Result updateMedicineStock(@PathVariable Integer medicineId, @RequestParam Integer stock, HttpServletRequest request) {
+        // 验证是否为管理员
+        if (!isAdmin(request)) {
+            return Result.forbidden();
+        }
+        
         try {
             boolean result = medicineService.updateMedicineStock(medicineId, stock);
             if (result) {
-                response.put("success", true);
-                response.put("message", "更新药品库存成功");
-                return ResponseEntity.ok(response);
+                return Result.success("更新药品库存成功");
             } else {
-                response.put("success", false);
-                response.put("message", "更新药品库存失败，药品不存在");
-                return ResponseEntity.badRequest().body(response);
+                return Result.error("更新药品库存失败，药品不存在");
             }
         } catch (Exception e) {
-            response.put("success", false);
-            response.put("message", "更新药品库存失败: " + e.getMessage());
-            return ResponseEntity.badRequest().body(response);
+            return Result.error("更新药品库存失败: " + e.getMessage());
         }
     }
 
@@ -223,23 +209,21 @@ public class MedicineManagementController {
      * 删除药品
      */
     @DeleteMapping("/{medicineId}")
-    public ResponseEntity<Map<String, Object>> deleteMedicine(@PathVariable Integer medicineId) {
-        Map<String, Object> response = new HashMap<>();
+    public Result deleteMedicine(@PathVariable Integer medicineId, HttpServletRequest request) {
+        // 验证是否为管理员
+        if (!isAdmin(request)) {
+            return Result.forbidden();
+        }
+        
         try {
             boolean result = medicineService.deleteMedicine(medicineId);
             if (result) {
-                response.put("success", true);
-                response.put("message", "删除药品成功");
-                return ResponseEntity.ok(response);
+                return Result.success("删除药品成功");
             } else {
-                response.put("success", false);
-                response.put("message", "删除药品失败，药品不存在");
-                return ResponseEntity.badRequest().body(response);
+                return Result.error("删除药品失败，药品不存在");
             }
         } catch (Exception e) {
-            response.put("success", false);
-            response.put("message", "删除药品失败: " + e.getMessage());
-            return ResponseEntity.badRequest().body(response);
+            return Result.error("删除药品失败: " + e.getMessage());
         }
     }
 
@@ -247,8 +231,12 @@ public class MedicineManagementController {
      * 获取药品统计信息
      */
     @GetMapping("/statistics")
-    public ResponseEntity<Map<String, Object>> getMedicineStatistics() {
-        Map<String, Object> response = new HashMap<>();
+    public Result getMedicineStatistics(HttpServletRequest request) {
+        // 验证是否为管理员
+        if (!isAdmin(request)) {
+            return Result.forbidden();
+        }
+        
         try {
             Map<String, Object> statistics = new HashMap<>();
             
@@ -260,14 +248,9 @@ public class MedicineManagementController {
             Map<String, Object> stockValue = medicineService.countStockValue();
             statistics.put("stockValue", stockValue);
             
-            response.put("success", true);
-            response.put("message", "获取药品统计信息成功");
-            response.put("data", statistics);
-            return ResponseEntity.ok(response);
+            return Result.success(statistics);
         } catch (Exception e) {
-            response.put("success", false);
-            response.put("message", "获取药品统计信息失败: " + e.getMessage());
-            return ResponseEntity.badRequest().body(response);
+            return Result.error("获取药品统计信息失败: " + e.getMessage());
         }
     }
 
@@ -275,18 +258,17 @@ public class MedicineManagementController {
      * 根据处方ID获取处方药品列表
      */
     @GetMapping("/prescription/{prescriptionId}")
-    public ResponseEntity<Map<String, Object>> getPrescriptionMedicinesByPrescriptionId(@PathVariable Integer prescriptionId) {
-        Map<String, Object> response = new HashMap<>();
+    public Result getPrescriptionMedicinesByPrescriptionId(@PathVariable Integer prescriptionId, HttpServletRequest request) {
+        // 验证是否为管理员
+        if (!isAdmin(request)) {
+            return Result.forbidden();
+        }
+        
         try {
             List<PrescriptionMedicine> prescriptionMedicines = prescriptionMedicineService.getPrescriptionMedicinesByPrescriptionId(prescriptionId);
-            response.put("success", true);
-            response.put("message", "获取处方药品列表成功");
-            response.put("data", prescriptionMedicines);
-            return ResponseEntity.ok(response);
+            return Result.success(prescriptionMedicines);
         } catch (Exception e) {
-            response.put("success", false);
-            response.put("message", "获取处方药品列表失败: " + e.getMessage());
-            return ResponseEntity.badRequest().body(response);
+            return Result.error("获取处方药品列表失败: " + e.getMessage());
         }
     }
 
@@ -294,18 +276,17 @@ public class MedicineManagementController {
      * 根据药品ID获取处方药品列表
      */
     @GetMapping("/usage/{medicineId}")
-    public ResponseEntity<Map<String, Object>> getPrescriptionMedicinesByMedicineId(@PathVariable Integer medicineId) {
-        Map<String, Object> response = new HashMap<>();
+    public Result getPrescriptionMedicinesByMedicineId(@PathVariable Integer medicineId, HttpServletRequest request) {
+        // 验证是否为管理员
+        if (!isAdmin(request)) {
+            return Result.forbidden();
+        }
+        
         try {
             List<PrescriptionMedicine> prescriptionMedicines = prescriptionMedicineService.getPrescriptionMedicinesByMedicineId(medicineId);
-            response.put("success", true);
-            response.put("message", "获取处方药品列表成功");
-            response.put("data", prescriptionMedicines);
-            return ResponseEntity.ok(response);
+            return Result.success(prescriptionMedicines);
         } catch (Exception e) {
-            response.put("success", false);
-            response.put("message", "获取处方药品列表失败: " + e.getMessage());
-            return ResponseEntity.badRequest().body(response);
+            return Result.error("获取处方药品列表失败: " + e.getMessage());
         }
     }
 } 

@@ -13,8 +13,8 @@
        http://www.springframework.org/schema/aop
        http://www.springframework.org/schema/aop/spring-aop.xsd">
 
-    <!-- 扫描service包下所有使用注解的类型 -->
-    <context:component-scan base-package="com.example.shijiehouduan.service"/>
+    <!-- 扫描service包和util包下所有使用注解的类型 -->
+    <context:component-scan base-package="com.example.shijiehouduan.service,com.example.shijiehouduan.util"/>
 
     <!-- 加载配置文件 -->
     <bean class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">

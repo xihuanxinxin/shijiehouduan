@@ -6,7 +6,7 @@ import com.example.shijiehouduan.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import javax.servlet.http.HttpSession;
+import javax.servlet.http.HttpServletRequest;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -16,7 +16,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/user")
-public class UserController {
+public class UserController extends BaseController {
 
     @Autowired
     private UserService userService;
@@ -25,23 +25,23 @@ public class UserController {
      * 获取用户列表
      * @param roleType 角色类型（可选）
      * @param status 状态（可选）
-     * @param session HTTP会话
+     * @param request HTTP请求
      * @return 用户列表
      */
     @GetMapping("/list")
     public Result getUserList(
             @RequestParam(required = false) String roleType,
             @RequestParam(required = false) String status,
-            HttpSession session) {
+            HttpServletRequest request) {
         
         // 获取当前登录用户
-        User currentUser = (User) session.getAttribute("user");
+        User currentUser = getCurrentUser(request);
         if (currentUser == null) {
             return Result.unauthorized();
         }
         
         // 只有管理员可以查看用户列表
-        if (!"管理员".equals(currentUser.getRoleType())) {
+        if (!isAdmin(request)) {
             return Result.forbidden();
         }
         
@@ -69,7 +69,7 @@ public class UserController {
      * @param roleType 角色类型（可选）
      * @param pageNum 页码
      * @param pageSize 每页记录数
-     * @param session HTTP会话
+     * @param request HTTP请求
      * @return 用户列表
      */
     @GetMapping("/page")
@@ -77,16 +77,16 @@ public class UserController {
             @RequestParam(required = false) String roleType,
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "10") Integer pageSize,
-            HttpSession session) {
+            HttpServletRequest request) {
         
         // 获取当前登录用户
-        User currentUser = (User) session.getAttribute("user");
+        User currentUser = getCurrentUser(request);
         if (currentUser == null) {
             return Result.unauthorized();
         }
         
         // 只有管理员可以查看用户列表
-        if (!"管理员".equals(currentUser.getRoleType())) {
+        if (!isAdmin(request)) {
             return Result.forbidden();
         }
         
@@ -115,19 +115,19 @@ public class UserController {
     /**
      * 获取用户详情
      * @param userId 用户ID
-     * @param session HTTP会话
+     * @param request HTTP请求
      * @return 用户详情
      */
     @GetMapping("/{userId}")
-    public Result getUserById(@PathVariable Integer userId, HttpSession session) {
+    public Result getUserById(@PathVariable Integer userId, HttpServletRequest request) {
         // 获取当前登录用户
-        User currentUser = (User) session.getAttribute("user");
+        User currentUser = getCurrentUser(request);
         if (currentUser == null) {
             return Result.unauthorized();
         }
         
         // 只有管理员或者用户本人可以查看用户详情
-        if (!"管理员".equals(currentUser.getRoleType()) && !currentUser.getUserId().equals(userId)) {
+        if (!isAdmin(request) && !currentUser.getUserId().equals(userId)) {
             return Result.forbidden();
         }
         
@@ -145,19 +145,19 @@ public class UserController {
     /**
      * 更新用户信息
      * @param user 用户信息
-     * @param session HTTP会话
+     * @param request HTTP请求
      * @return 更新结果
      */
     @PutMapping
-    public Result updateUser(@RequestBody User user, HttpSession session) {
+    public Result updateUser(@RequestBody User user, HttpServletRequest request) {
         // 获取当前登录用户
-        User currentUser = (User) session.getAttribute("user");
+        User currentUser = getCurrentUser(request);
         if (currentUser == null) {
             return Result.unauthorized();
         }
         
         // 只有管理员或者用户本人可以更新用户信息
-        if (!"管理员".equals(currentUser.getRoleType()) && !currentUser.getUserId().equals(user.getUserId())) {
+        if (!isAdmin(request) && !currentUser.getUserId().equals(user.getUserId())) {
             return Result.forbidden();
         }
         
@@ -174,23 +174,23 @@ public class UserController {
      * 更新用户状态
      * @param userId 用户ID
      * @param status 状态
-     * @param session HTTP会话
+     * @param request HTTP请求
      * @return 更新结果
      */
     @PutMapping("/{userId}/status")
     public Result updateUserStatus(
             @PathVariable Integer userId,
             @RequestParam String status,
-            HttpSession session) {
+            HttpServletRequest request) {
         
         // 获取当前登录用户
-        User currentUser = (User) session.getAttribute("user");
+        User currentUser = getCurrentUser(request);
         if (currentUser == null) {
             return Result.unauthorized();
         }
         
         // 只有管理员可以更新用户状态
-        if (!"管理员".equals(currentUser.getRoleType())) {
+        if (!isAdmin(request)) {
             return Result.forbidden();
         }
         
@@ -206,19 +206,19 @@ public class UserController {
     /**
      * 删除用户
      * @param userId 用户ID
-     * @param session HTTP会话
+     * @param request HTTP请求
      * @return 删除结果
      */
     @DeleteMapping("/{userId}")
-    public Result deleteUser(@PathVariable Integer userId, HttpSession session) {
+    public Result deleteUser(@PathVariable Integer userId, HttpServletRequest request) {
         // 获取当前登录用户
-        User currentUser = (User) session.getAttribute("user");
+        User currentUser = getCurrentUser(request);
         if (currentUser == null) {
             return Result.unauthorized();
         }
         
         // 只有管理员可以删除用户
-        if (!"管理员".equals(currentUser.getRoleType())) {
+        if (!isAdmin(request)) {
             return Result.forbidden();
         }
         

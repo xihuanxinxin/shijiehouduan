@@ -13,7 +13,7 @@ import com.example.shijiehouduan.service.PatientService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import javax.servlet.http.HttpSession;
+import javax.servlet.http.HttpServletRequest;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,7 +23,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/medical-record")
-public class MedicalRecordController {
+public class MedicalRecordController extends BaseController {
 
     @Autowired
     private MedicalRecordService medicalRecordService;
@@ -42,7 +42,7 @@ public class MedicalRecordController {
      * @param patientId 患者ID（医生和管理员必填，患者不填则查询自己）
      * @param doctorId 医生ID（可选）
      * @param status 状态（可选）
-     * @param session HTTP会话
+     * @param request HTTP请求
      * @return 病历列表
      */
     @GetMapping("/list")
@@ -50,10 +50,10 @@ public class MedicalRecordController {
             @RequestParam(required = false) Integer patientId,
             @RequestParam(required = false) Integer doctorId,
             @RequestParam(required = false) String status,
-            HttpSession session) {
+            HttpServletRequest request) {
         
         // 获取当前登录用户
-        User currentUser = (User) session.getAttribute("user");
+        User currentUser = getCurrentUser(request);
         if (currentUser == null) {
             return Result.unauthorized();
         }
@@ -61,7 +61,7 @@ public class MedicalRecordController {
         // 根据角色和参数判断查询哪些病历
         List<MedicalRecord> medicalRecords = null;
         
-        if ("患者".equals(currentUser.getRoleType())) {
+        if (isPatient(request)) {
             // 患者只能查看自己的病历
             Patient patient = patientService.getPatientByUserId(currentUser.getUserId());
             if (patient == null) {
@@ -83,7 +83,7 @@ public class MedicalRecordController {
             if (status != null && !status.isEmpty()) {
                 medicalRecords.removeIf(m -> !m.getStatus().equals(status));
             }
-        } else if ("医生".equals(currentUser.getRoleType())) {
+        } else if (isDoctor(request)) {
             // 医生可以查看自己负责的病历，或者指定患者的病历
             Doctor doctor = doctorService.getDoctorByUserId(currentUser.getUserId());
             if (doctor == null) {
@@ -104,7 +104,7 @@ public class MedicalRecordController {
             if (status != null && !status.isEmpty()) {
                 medicalRecords.removeIf(m -> !m.getStatus().equals(status));
             }
-        } else if ("管理员".equals(currentUser.getRoleType())) {
+        } else if (isAdmin(request)) {
             // 管理员可以查看所有病历
             if (patientId != null) {
                 // 查询指定患者的病历
@@ -134,13 +134,13 @@ public class MedicalRecordController {
     /**
      * 获取病历详情
      * @param recordId 病历ID
-     * @param session HTTP会话
+     * @param request HTTP请求
      * @return 病历详情
      */
     @GetMapping("/{recordId}")
-    public Result getMedicalRecord(@PathVariable Integer recordId, HttpSession session) {
+    public Result getMedicalRecord(@PathVariable Integer recordId, HttpServletRequest request) {
         // 获取当前登录用户
-        User currentUser = (User) session.getAttribute("user");
+        User currentUser = getCurrentUser(request);
         if (currentUser == null) {
             return Result.unauthorized();
         }
@@ -152,19 +152,19 @@ public class MedicalRecordController {
         }
 
         // 根据角色判断是否有权限查看
-        if ("患者".equals(currentUser.getRoleType())) {
+        if (isPatient(request)) {
             // 患者只能查看自己的病历
             Patient patient = patientService.getPatientByUserId(currentUser.getUserId());
             if (patient == null || !patient.getPatientId().equals(medicalRecord.getPatientId())) {
                 return Result.forbidden();
             }
-        } else if ("医生".equals(currentUser.getRoleType())) {
+        } else if (isDoctor(request)) {
             // 医生只能查看自己负责的病历
             Doctor doctor = doctorService.getDoctorByUserId(currentUser.getUserId());
             if (doctor == null || !doctor.getDoctorId().equals(medicalRecord.getDoctorId())) {
                 return Result.forbidden();
             }
-        } else if ("管理员".equals(currentUser.getRoleType())) {
+        } else if (isAdmin(request)) {
             // 管理员可以查看所有病历
         } else {
             return Result.forbidden();
@@ -184,20 +184,20 @@ public class MedicalRecordController {
     /**
      * 获取眼科检查记录列表
      * @param patientId 患者ID（医生和管理员必填，患者不填则查询自己）
-     * @param session HTTP会话
+     * @param request HTTP请求
      * @return 眼科检查记录列表
      */
     @GetMapping("/examinations")
-    public Result getEyeExaminations(@RequestParam(required = false) Integer patientId, HttpSession session) {
+    public Result getEyeExaminations(@RequestParam(required = false) Integer patientId, HttpServletRequest request) {
         // 获取当前登录用户
-        User currentUser = (User) session.getAttribute("user");
+        User currentUser = getCurrentUser(request);
         if (currentUser == null) {
             return Result.unauthorized();
         }
 
         // 根据角色和参数判断查询哪个患者的眼科检查记录
         List<EyeExamination> examinations = null;
-        if ("患者".equals(currentUser.getRoleType())) {
+        if (isPatient(request)) {
             // 患者只能查看自己的眼科检查记录
             Patient patient = patientService.getPatientByUserId(currentUser.getUserId());
             if (patient == null) {
@@ -209,16 +209,19 @@ public class MedicalRecordController {
             }
             
             examinations = eyeExaminationService.getEyeExaminationsByPatientId(patient.getPatientId());
-        } else if ("医生".equals(currentUser.getRoleType())) {
+        } else if (isDoctor(request)) {
             // 医生可以查看指定患者的眼科检查记录，或者查看自己负责的所有眼科检查记录
             if (patientId != null) {
                 examinations = eyeExaminationService.getEyeExaminationsByPatientId(patientId);
             } else {
                 // 这里需要先获取医生ID，然后查询医生负责的眼科检查记录
-                // 由于我们没有实现医生模块，这里暂时返回错误信息
-                return Result.validateFailed("请指定患者ID");
+                Doctor doctor = doctorService.getDoctorByUserId(currentUser.getUserId());
+                if (doctor == null) {
+                    return Result.error("医生信息不存在");
+                }
+                examinations = eyeExaminationService.getEyeExaminationsByDoctorId(doctor.getDoctorId());
             }
-        } else if ("管理员".equals(currentUser.getRoleType())) {
+        } else if (isAdmin(request)) {
             // 管理员可以查看所有眼科检查记录，但需要指定患者ID
             if (patientId == null) {
                 return Result.validateFailed("请指定患者ID");
@@ -234,13 +237,13 @@ public class MedicalRecordController {
     /**
      * 获取眼科检查记录详情
      * @param examinationId 眼科检查记录ID
-     * @param session HTTP会话
+     * @param request HTTP请求
      * @return 眼科检查记录详情
      */
     @GetMapping("/examination/{examinationId}")
-    public Result getEyeExamination(@PathVariable Integer examinationId, HttpSession session) {
+    public Result getEyeExamination(@PathVariable Integer examinationId, HttpServletRequest request) {
         // 获取当前登录用户
-        User currentUser = (User) session.getAttribute("user");
+        User currentUser = getCurrentUser(request);
         if (currentUser == null) {
             return Result.unauthorized();
         }
@@ -252,16 +255,16 @@ public class MedicalRecordController {
         }
 
         // 根据角色判断是否有权限查看
-        if ("患者".equals(currentUser.getRoleType())) {
+        if (isPatient(request)) {
             // 患者只能查看自己的眼科检查记录
             Patient patient = patientService.getPatientByUserId(currentUser.getUserId());
             if (patient == null || !patient.getPatientId().equals(examination.getPatientId())) {
                 return Result.forbidden();
             }
-        } else if ("医生".equals(currentUser.getRoleType())) {
+        } else if (isDoctor(request)) {
             // 医生可以查看自己负责的眼科检查记录，或者所有眼科检查记录（简化处理）
             // 这里简化处理，允许医生查看所有眼科检查记录
-        } else if ("管理员".equals(currentUser.getRoleType())) {
+        } else if (isAdmin(request)) {
             // 管理员可以查看所有眼科检查记录
         } else {
             return Result.forbidden();
@@ -273,19 +276,19 @@ public class MedicalRecordController {
     /**
      * 添加病历（仅医生）
      * @param medicalRecord 病历信息
-     * @param session HTTP会话
+     * @param request HTTP请求
      * @return 添加结果
      */
     @PostMapping("/add")
-    public Result addMedicalRecord(@RequestBody MedicalRecord medicalRecord, HttpSession session) {
+    public Result addMedicalRecord(@RequestBody MedicalRecord medicalRecord, HttpServletRequest request) {
         // 获取当前登录用户
-        User currentUser = (User) session.getAttribute("user");
+        User currentUser = getCurrentUser(request);
         if (currentUser == null) {
             return Result.unauthorized();
         }
 
         // 只有医生可以添加病历
-        if (!"医生".equals(currentUser.getRoleType())) {
+        if (!isDoctor(request)) {
             return Result.forbidden();
         }
 
@@ -313,19 +316,19 @@ public class MedicalRecordController {
     /**
      * 更新病历（仅医生）
      * @param medicalRecord 病历信息
-     * @param session HTTP会话
+     * @param request HTTP请求
      * @return 更新结果
      */
     @PutMapping("/update")
-    public Result updateMedicalRecord(@RequestBody MedicalRecord medicalRecord, HttpSession session) {
+    public Result updateMedicalRecord(@RequestBody MedicalRecord medicalRecord, HttpServletRequest request) {
         // 获取当前登录用户
-        User currentUser = (User) session.getAttribute("user");
+        User currentUser = getCurrentUser(request);
         if (currentUser == null) {
             return Result.unauthorized();
         }
 
         // 只有医生可以更新病历
-        if (!"医生".equals(currentUser.getRoleType())) {
+        if (!isDoctor(request)) {
             return Result.forbidden();
         }
 
@@ -362,63 +365,63 @@ public class MedicalRecordController {
     /**
      * 更新病历状态为待诊（仅医生）
      * @param recordId 病历ID
-     * @param session HTTP会话
+     * @param request HTTP请求
      * @return 更新结果
      */
     @PutMapping("/{recordId}/pending")
-    public Result setMedicalRecordPending(@PathVariable Integer recordId, HttpSession session) {
-        return updateMedicalRecordStatus(recordId, "待诊", session);
+    public Result setMedicalRecordPending(@PathVariable Integer recordId, HttpServletRequest request) {
+        return updateMedicalRecordStatus(recordId, "待诊", request);
     }
 
     /**
      * 更新病历状态为诊疗中（仅医生）
      * @param recordId 病历ID
-     * @param session HTTP会话
+     * @param request HTTP请求
      * @return 更新结果
      */
     @PutMapping("/{recordId}/in-progress")
-    public Result setMedicalRecordInProgress(@PathVariable Integer recordId, HttpSession session) {
-        return updateMedicalRecordStatus(recordId, "诊疗中", session);
+    public Result setMedicalRecordInProgress(@PathVariable Integer recordId, HttpServletRequest request) {
+        return updateMedicalRecordStatus(recordId, "诊疗中", request);
     }
 
     /**
      * 更新病历状态为已完成（仅医生）
      * @param recordId 病历ID
-     * @param session HTTP会话
+     * @param request HTTP请求
      * @return 更新结果
      */
     @PutMapping("/{recordId}/completed")
-    public Result setMedicalRecordCompleted(@PathVariable Integer recordId, HttpSession session) {
-        return updateMedicalRecordStatus(recordId, "已完成", session);
+    public Result setMedicalRecordCompleted(@PathVariable Integer recordId, HttpServletRequest request) {
+        return updateMedicalRecordStatus(recordId, "已完成", request);
     }
 
     /**
      * 更新病历状态为已取消（仅医生）
      * @param recordId 病历ID
-     * @param session HTTP会话
+     * @param request HTTP请求
      * @return 更新结果
      */
     @PutMapping("/{recordId}/cancelled")
-    public Result setMedicalRecordCancelled(@PathVariable Integer recordId, HttpSession session) {
-        return updateMedicalRecordStatus(recordId, "已取消", session);
+    public Result setMedicalRecordCancelled(@PathVariable Integer recordId, HttpServletRequest request) {
+        return updateMedicalRecordStatus(recordId, "已取消", request);
     }
 
     /**
      * 更新病历状态
      * @param recordId 病历ID
      * @param status 状态
-     * @param session HTTP会话
+     * @param request HTTP请求
      * @return 更新结果
      */
-    private Result updateMedicalRecordStatus(Integer recordId, String status, HttpSession session) {
+    private Result updateMedicalRecordStatus(Integer recordId, String status, HttpServletRequest request) {
         // 获取当前登录用户
-        User currentUser = (User) session.getAttribute("user");
+        User currentUser = getCurrentUser(request);
         if (currentUser == null) {
             return Result.unauthorized();
         }
 
         // 只有医生可以更新病历状态
-        if (!"医生".equals(currentUser.getRoleType())) {
+        if (!isDoctor(request)) {
             return Result.forbidden();
         }
 

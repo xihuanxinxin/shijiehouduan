@@ -13,7 +13,7 @@ import com.example.shijiehouduan.service.PatientService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import javax.servlet.http.HttpSession;
+import javax.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -25,7 +25,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/hospitalization")
-public class HospitalizationController {
+public class HospitalizationController extends BaseController {
 
     @Autowired
     private HospitalizationService hospitalizationService;
@@ -44,7 +44,7 @@ public class HospitalizationController {
      * @param patientId 患者ID（可选）
      * @param doctorId 医生ID（可选）
      * @param bedId 床位ID（可选）
-     * @param session HTTP会话
+     * @param request HTTP请求
      * @return 住院信息列表
      */
     @GetMapping("/list")
@@ -52,10 +52,10 @@ public class HospitalizationController {
             @RequestParam(required = false) Integer patientId,
             @RequestParam(required = false) Integer doctorId,
             @RequestParam(required = false) Integer bedId,
-            HttpSession session) {
+            HttpServletRequest request) {
         
         // 获取当前登录用户
-        User currentUser = (User) session.getAttribute("user");
+        User currentUser = getCurrentUser(request);
         if (currentUser == null) {
             return Result.unauthorized();
         }
@@ -63,7 +63,7 @@ public class HospitalizationController {
         // 根据角色和参数判断查询哪些住院信息
         List<Hospitalization> hospitalizations = null;
         
-        if ("患者".equals(currentUser.getRoleType())) {
+        if (isPatient(request)) {
             // 患者只能查看自己的住院信息
             Patient patient = patientService.getPatientByUserId(currentUser.getUserId());
             if (patient == null) {
@@ -85,7 +85,7 @@ public class HospitalizationController {
             if (bedId != null) {
                 hospitalizations.removeIf(h -> !h.getBedId().equals(bedId));
             }
-        } else if ("医生".equals(currentUser.getRoleType())) {
+        } else if (isDoctor(request)) {
             // 医生可以查看自己负责的住院信息，或者指定患者的住院信息
             Doctor doctor = doctorService.getDoctorByUserId(currentUser.getUserId());
             if (doctor == null) {
@@ -109,7 +109,7 @@ public class HospitalizationController {
                 // 查询医生自己负责的所有住院信息
                 hospitalizations = hospitalizationService.getHospitalizationsByDoctorId(doctor.getDoctorId());
             }
-        } else if ("管理员".equals(currentUser.getRoleType())) {
+        } else if (isAdmin(request)) {
             // 管理员可以查看所有住院信息
             if (patientId != null) {
                 // 查询指定患者的住院信息
@@ -154,13 +154,13 @@ public class HospitalizationController {
     /**
      * 获取住院信息详情
      * @param hospitalizationId 住院信息ID
-     * @param session HTTP会话
+     * @param request HTTP请求
      * @return 住院信息详情
      */
     @GetMapping("/{hospitalizationId}")
-    public Result getHospitalization(@PathVariable Integer hospitalizationId, HttpSession session) {
+    public Result getHospitalization(@PathVariable Integer hospitalizationId, HttpServletRequest request) {
         // 获取当前登录用户
-        User currentUser = (User) session.getAttribute("user");
+        User currentUser = getCurrentUser(request);
         if (currentUser == null) {
             return Result.unauthorized();
         }
@@ -172,19 +172,19 @@ public class HospitalizationController {
         }
 
         // 根据角色判断是否有权限查看
-        if ("患者".equals(currentUser.getRoleType())) {
+        if (isPatient(request)) {
             // 患者只能查看自己的住院信息
             Patient patient = patientService.getPatientByUserId(currentUser.getUserId());
             if (patient == null || !patient.getPatientId().equals(hospitalization.getPatientId())) {
                 return Result.forbidden();
             }
-        } else if ("医生".equals(currentUser.getRoleType())) {
+        } else if (isDoctor(request)) {
             // 医生只能查看自己负责的住院信息
             Doctor doctor = doctorService.getDoctorByUserId(currentUser.getUserId());
             if (doctor == null || !doctor.getDoctorId().equals(hospitalization.getDoctorId())) {
                 return Result.forbidden();
             }
-        } else if ("管理员".equals(currentUser.getRoleType())) {
+        } else if (isAdmin(request)) {
             // 管理员可以查看所有住院信息
         } else {
             return Result.forbidden();
@@ -195,13 +195,13 @@ public class HospitalizationController {
 
     /**
      * 获取当前住院信息
-     * @param session HTTP会话
+     * @param request HTTP请求
      * @return 当前住院信息列表
      */
     @GetMapping("/current")
-    public Result getCurrentHospitalizations(HttpSession session) {
+    public Result getCurrentHospitalizations(HttpServletRequest request) {
         // 获取当前登录用户
-        User currentUser = (User) session.getAttribute("user");
+        User currentUser = getCurrentUser(request);
         if (currentUser == null) {
             return Result.unauthorized();
         }
@@ -209,7 +209,7 @@ public class HospitalizationController {
         // 根据角色判断查询哪些住院信息
         List<Hospitalization> hospitalizations = null;
         
-        if ("患者".equals(currentUser.getRoleType())) {
+        if (isPatient(request)) {
             // 患者只能查看自己的住院信息
             Patient patient = patientService.getPatientByUserId(currentUser.getUserId());
             if (patient == null) {
@@ -219,7 +219,7 @@ public class HospitalizationController {
             hospitalizations = hospitalizationService.getHospitalizationsByPatientId(patient.getPatientId());
             // 过滤出当前住院的记录（未出院的）
             hospitalizations.removeIf(h -> h.getDischargeDate() != null);
-        } else if ("医生".equals(currentUser.getRoleType())) {
+        } else if (isDoctor(request)) {
             // 医生可以查看自己负责的当前住院信息
             Doctor doctor = doctorService.getDoctorByUserId(currentUser.getUserId());
             if (doctor == null) {
@@ -229,7 +229,7 @@ public class HospitalizationController {
             hospitalizations = hospitalizationService.getHospitalizationsByDoctorId(doctor.getDoctorId());
             // 过滤出当前住院的记录（未出院的）
             hospitalizations.removeIf(h -> h.getDischargeDate() != null);
-        } else if ("管理员".equals(currentUser.getRoleType())) {
+        } else if (isAdmin(request)) {
             // 管理员可以查看所有当前住院信息
             hospitalizations = hospitalizationService.getCurrentHospitalizations();
         } else {
@@ -243,21 +243,21 @@ public class HospitalizationController {
      * 获取床位列表
      * @param status 床位状态（可选）
      * @param roomNumber 房间号（可选）
-     * @param session HTTP会话
+     * @param request HTTP请求
      * @return 床位列表
      */
     @GetMapping("/beds")
     public Result getBeds(@RequestParam(required = false) String status, 
                           @RequestParam(required = false) String roomNumber,
-                          HttpSession session) {
+                          HttpServletRequest request) {
         // 获取当前登录用户
-        User currentUser = (User) session.getAttribute("user");
+        User currentUser = getCurrentUser(request);
         if (currentUser == null) {
             return Result.unauthorized();
         }
 
         // 只有医生和管理员可以查看所有床位
-        if (!"医生".equals(currentUser.getRoleType()) && !"管理员".equals(currentUser.getRoleType())) {
+        if (!isDoctor(request) && !isAdmin(request)) {
             return Result.forbidden();
         }
 
@@ -279,13 +279,13 @@ public class HospitalizationController {
     /**
      * 获取床位详情
      * @param bedId 床位ID
-     * @param session HTTP会话
+     * @param request HTTP请求
      * @return 床位详情
      */
     @GetMapping("/bed/{bedId}")
-    public Result getBed(@PathVariable Integer bedId, HttpSession session) {
+    public Result getBed(@PathVariable Integer bedId, HttpServletRequest request) {
         // 获取当前登录用户
-        User currentUser = (User) session.getAttribute("user");
+        User currentUser = getCurrentUser(request);
         if (currentUser == null) {
             return Result.unauthorized();
         }
@@ -297,7 +297,7 @@ public class HospitalizationController {
         }
 
         // 患者只能查看自己的床位
-        if ("患者".equals(currentUser.getRoleType())) {
+        if (isPatient(request)) {
             Patient patient = patientService.getPatientByUserId(currentUser.getUserId());
             if (patient == null || bed.getCurrentPatientId() == null || !bed.getCurrentPatientId().equals(patient.getPatientId())) {
                 return Result.forbidden();
@@ -318,20 +318,20 @@ public class HospitalizationController {
     /**
      * 获取患者当前的床位
      * @param patientId 患者ID（患者不填则查询自己）
-     * @param session HTTP会话
+     * @param request HTTP请求
      * @return 患者当前的床位
      */
     @GetMapping("/patient/bed")
-    public Result getPatientBed(@RequestParam(required = false) Integer patientId, HttpSession session) {
+    public Result getPatientBed(@RequestParam(required = false) Integer patientId, HttpServletRequest request) {
         // 获取当前登录用户
-        User currentUser = (User) session.getAttribute("user");
+        User currentUser = getCurrentUser(request);
         if (currentUser == null) {
             return Result.unauthorized();
         }
 
         // 确定要查询的患者ID
         Integer targetPatientId = null;
-        if ("患者".equals(currentUser.getRoleType())) {
+        if (isPatient(request)) {
             // 患者只能查看自己的床位
             Patient patient = patientService.getPatientByUserId(currentUser.getUserId());
             if (patient == null) {
@@ -343,7 +343,7 @@ public class HospitalizationController {
             }
             
             targetPatientId = patient.getPatientId();
-        } else if ("医生".equals(currentUser.getRoleType()) || "管理员".equals(currentUser.getRoleType())) {
+        } else if (isDoctor(request) || isAdmin(request)) {
             // 医生和管理员可以查看指定患者的床位
             if (patientId == null) {
                 return Result.validateFailed("请指定患者ID");
@@ -373,19 +373,19 @@ public class HospitalizationController {
     /**
      * 添加住院记录（仅医生和管理员）
      * @param hospitalization 住院记录信息
-     * @param session HTTP会话
+     * @param request HTTP请求
      * @return 添加结果
      */
     @PostMapping("/add")
-    public Result addHospitalization(@RequestBody Hospitalization hospitalization, HttpSession session) {
+    public Result addHospitalization(@RequestBody Hospitalization hospitalization, HttpServletRequest request) {
         // 获取当前登录用户
-        User currentUser = (User) session.getAttribute("user");
+        User currentUser = getCurrentUser(request);
         if (currentUser == null) {
             return Result.unauthorized();
         }
 
         // 只有医生和管理员可以添加住院记录
-        if (!"医生".equals(currentUser.getRoleType()) && !"管理员".equals(currentUser.getRoleType())) {
+        if (!isDoctor(request) && !isAdmin(request)) {
             return Result.forbidden();
         }
 
@@ -396,7 +396,7 @@ public class HospitalizationController {
         
         if (hospitalization.getDoctorId() == null) {
             // 如果是医生添加，则设置医生ID为当前登录医生
-            if ("医生".equals(currentUser.getRoleType())) {
+            if (isDoctor(request)) {
                 Doctor doctor = doctorService.getDoctorByUserId(currentUser.getUserId());
                 if (doctor == null) {
                     return Result.error("医生信息不存在");
@@ -441,19 +441,19 @@ public class HospitalizationController {
     /**
      * 更新住院记录（仅医生和管理员）
      * @param hospitalization 住院记录信息
-     * @param session HTTP会话
+     * @param request HTTP请求
      * @return 更新结果
      */
     @PutMapping("/update")
-    public Result updateHospitalization(@RequestBody Hospitalization hospitalization, HttpSession session) {
+    public Result updateHospitalization(@RequestBody Hospitalization hospitalization, HttpServletRequest request) {
         // 获取当前登录用户
-        User currentUser = (User) session.getAttribute("user");
+        User currentUser = getCurrentUser(request);
         if (currentUser == null) {
             return Result.unauthorized();
         }
 
         // 只有医生和管理员可以更新住院记录
-        if (!"医生".equals(currentUser.getRoleType()) && !"管理员".equals(currentUser.getRoleType())) {
+        if (!isDoctor(request) && !isAdmin(request)) {
             return Result.forbidden();
         }
 
@@ -469,7 +469,7 @@ public class HospitalizationController {
         }
 
         // 医生只能更新自己负责的住院记录
-        if ("医生".equals(currentUser.getRoleType())) {
+        if (isDoctor(request)) {
             Doctor doctor = doctorService.getDoctorByUserId(currentUser.getUserId());
             if (doctor == null || !doctor.getDoctorId().equals(originalHospitalization.getDoctorId())) {
                 return Result.forbidden();
@@ -500,19 +500,19 @@ public class HospitalizationController {
     /**
      * 更新住院记录状态为出院（仅医生和管理员）
      * @param hospitalizationId 住院记录ID
-     * @param session HTTP会话
+     * @param request HTTP请求
      * @return 更新结果
      */
     @PutMapping("/{hospitalizationId}/discharge")
-    public Result dischargePatient(@PathVariable Integer hospitalizationId, HttpSession session) {
+    public Result dischargePatient(@PathVariable Integer hospitalizationId, HttpServletRequest request) {
         // 获取当前登录用户
-        User currentUser = (User) session.getAttribute("user");
+        User currentUser = getCurrentUser(request);
         if (currentUser == null) {
             return Result.unauthorized();
         }
 
         // 只有医生和管理员可以更新住院记录状态
-        if (!"医生".equals(currentUser.getRoleType()) && !"管理员".equals(currentUser.getRoleType())) {
+        if (!isDoctor(request) && !isAdmin(request)) {
             return Result.forbidden();
         }
 
@@ -523,7 +523,7 @@ public class HospitalizationController {
         }
 
         // 医生只能更新自己负责的住院记录
-        if ("医生".equals(currentUser.getRoleType())) {
+        if (isDoctor(request)) {
             Doctor doctor = doctorService.getDoctorByUserId(currentUser.getUserId());
             if (doctor == null || !doctor.getDoctorId().equals(hospitalization.getDoctorId())) {
                 return Result.forbidden();
@@ -542,19 +542,19 @@ public class HospitalizationController {
     /**
      * 更新住院记录状态为转院（仅医生和管理员）
      * @param hospitalizationId 住院记录ID
-     * @param session HTTP会话
+     * @param request HTTP请求
      * @return 更新结果
      */
     @PutMapping("/{hospitalizationId}/transfer")
-    public Result transferPatient(@PathVariable Integer hospitalizationId, HttpSession session) {
+    public Result transferPatient(@PathVariable Integer hospitalizationId, HttpServletRequest request) {
         // 获取当前登录用户
-        User currentUser = (User) session.getAttribute("user");
+        User currentUser = getCurrentUser(request);
         if (currentUser == null) {
             return Result.unauthorized();
         }
 
         // 只有医生和管理员可以更新住院记录状态
-        if (!"医生".equals(currentUser.getRoleType()) && !"管理员".equals(currentUser.getRoleType())) {
+        if (!isDoctor(request) && !isAdmin(request)) {
             return Result.forbidden();
         }
 
@@ -565,7 +565,7 @@ public class HospitalizationController {
         }
 
         // 医生只能更新自己负责的住院记录
-        if ("医生".equals(currentUser.getRoleType())) {
+        if (isDoctor(request)) {
             Doctor doctor = doctorService.getDoctorByUserId(currentUser.getUserId());
             if (doctor == null || !doctor.getDoctorId().equals(hospitalization.getDoctorId())) {
                 return Result.forbidden();
@@ -584,19 +584,19 @@ public class HospitalizationController {
     /**
      * 更新住院记录状态为死亡（仅医生和管理员）
      * @param hospitalizationId 住院记录ID
-     * @param session HTTP会话
+     * @param request HTTP请求
      * @return 更新结果
      */
     @PutMapping("/{hospitalizationId}/deceased")
-    public Result deceasedPatient(@PathVariable Integer hospitalizationId, HttpSession session) {
+    public Result deceasedPatient(@PathVariable Integer hospitalizationId, HttpServletRequest request) {
         // 获取当前登录用户
-        User currentUser = (User) session.getAttribute("user");
+        User currentUser = getCurrentUser(request);
         if (currentUser == null) {
             return Result.unauthorized();
         }
 
         // 只有医生和管理员可以更新住院记录状态
-        if (!"医生".equals(currentUser.getRoleType()) && !"管理员".equals(currentUser.getRoleType())) {
+        if (!isDoctor(request) && !isAdmin(request)) {
             return Result.forbidden();
         }
 
@@ -607,7 +607,7 @@ public class HospitalizationController {
         }
 
         // 医生只能更新自己负责的住院记录
-        if ("医生".equals(currentUser.getRoleType())) {
+        if (isDoctor(request)) {
             Doctor doctor = doctorService.getDoctorByUserId(currentUser.getUserId());
             if (doctor == null || !doctor.getDoctorId().equals(hospitalization.getDoctorId())) {
                 return Result.forbidden();

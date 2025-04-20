@@ -13,7 +13,7 @@ import com.example.shijiehouduan.service.SurgeryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import javax.servlet.http.HttpSession;
+import javax.servlet.http.HttpServletRequest;
 import java.util.Date;
 import java.util.List;
 
@@ -22,7 +22,7 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/api/surgery")
-public class SurgeryController {
+public class SurgeryController extends BaseController {
 
     @Autowired
     private SurgeryService surgeryService;
@@ -42,7 +42,7 @@ public class SurgeryController {
      * @param doctorId 医生ID（可选）
      * @param recordId 病历ID（可选）
      * @param status 状态（可选）
-     * @param session HTTP会话
+     * @param request HTTP请求
      * @return 手术记录列表
      */
     @GetMapping("/list")
@@ -51,10 +51,10 @@ public class SurgeryController {
             @RequestParam(required = false) Integer doctorId,
             @RequestParam(required = false) Integer recordId,
             @RequestParam(required = false) String status,
-            HttpSession session) {
+            HttpServletRequest request) {
         
         // 获取当前登录用户
-        User currentUser = (User) session.getAttribute("user");
+        User currentUser = getCurrentUser(request);
         if (currentUser == null) {
             return Result.unauthorized();
         }
@@ -62,7 +62,7 @@ public class SurgeryController {
         // 根据角色和参数判断查询哪些手术记录
         List<Surgery> surgeries = null;
         
-        if ("患者".equals(currentUser.getRoleType())) {
+        if (isPatient(request)) {
             // 患者只能查看自己的手术记录
             Patient patient = patientService.getPatientByUserId(currentUser.getUserId());
             if (patient == null) {
@@ -89,7 +89,7 @@ public class SurgeryController {
             if (status != null && !status.isEmpty()) {
                 surgeries.removeIf(s -> !s.getStatus().equals(status));
             }
-        } else if ("医生".equals(currentUser.getRoleType())) {
+        } else if (isDoctor(request)) {
             // 医生可以查看自己负责的手术记录，或者指定患者的手术记录
             Doctor doctor = doctorService.getDoctorByUserId(currentUser.getUserId());
             if (doctor == null) {
@@ -115,7 +115,7 @@ public class SurgeryController {
                 // 查询医生自己负责的所有手术记录
                 surgeries = surgeryService.getSurgeriesByDoctorId(doctor.getDoctorId());
             }
-        } else if ("管理员".equals(currentUser.getRoleType())) {
+        } else if (isAdmin(request)) {
             // 管理员可以查看所有手术记录
             if (patientId != null) {
                 // 查询指定患者的手术记录
@@ -173,13 +173,13 @@ public class SurgeryController {
     /**
      * 获取手术记录详情
      * @param surgeryId 手术记录ID
-     * @param session HTTP会话
+     * @param request HTTP请求
      * @return 手术记录详情
      */
     @GetMapping("/{surgeryId}")
-    public Result getSurgery(@PathVariable Integer surgeryId, HttpSession session) {
+    public Result getSurgery(@PathVariable Integer surgeryId, HttpServletRequest request) {
         // 获取当前登录用户
-        User currentUser = (User) session.getAttribute("user");
+        User currentUser = getCurrentUser(request);
         if (currentUser == null) {
             return Result.unauthorized();
         }
@@ -191,19 +191,19 @@ public class SurgeryController {
         }
 
         // 根据角色判断是否有权限查看
-        if ("患者".equals(currentUser.getRoleType())) {
+        if (isPatient(request)) {
             // 患者只能查看自己的手术记录
             Patient patient = patientService.getPatientByUserId(currentUser.getUserId());
             if (patient == null || !patient.getPatientId().equals(surgery.getPatientId())) {
                 return Result.forbidden();
             }
-        } else if ("医生".equals(currentUser.getRoleType())) {
+        } else if (isDoctor(request)) {
             // 医生只能查看自己负责的手术记录
             Doctor doctor = doctorService.getDoctorByUserId(currentUser.getUserId());
             if (doctor == null || !doctor.getDoctorId().equals(surgery.getDoctorId())) {
                 return Result.forbidden();
             }
-        } else if ("管理员".equals(currentUser.getRoleType())) {
+        } else if (isAdmin(request)) {
             // 管理员可以查看所有手术记录
         } else {
             return Result.forbidden();
@@ -215,19 +215,19 @@ public class SurgeryController {
     /**
      * 添加手术记录（仅医生）
      * @param surgery 手术记录信息
-     * @param session HTTP会话
+     * @param request HTTP请求
      * @return 添加结果
      */
     @PostMapping("/add")
-    public Result addSurgery(@RequestBody Surgery surgery, HttpSession session) {
+    public Result addSurgery(@RequestBody Surgery surgery, HttpServletRequest request) {
         // 获取当前登录用户
-        User currentUser = (User) session.getAttribute("user");
+        User currentUser = getCurrentUser(request);
         if (currentUser == null) {
             return Result.unauthorized();
         }
 
         // 只有医生可以添加手术记录
-        if (!"医生".equals(currentUser.getRoleType())) {
+        if (!isDoctor(request)) {
             return Result.forbidden();
         }
 
@@ -281,19 +281,19 @@ public class SurgeryController {
     /**
      * 更新手术记录（仅医生）
      * @param surgery 手术记录信息
-     * @param session HTTP会话
+     * @param request HTTP请求
      * @return 更新结果
      */
     @PutMapping("/update")
-    public Result updateSurgery(@RequestBody Surgery surgery, HttpSession session) {
+    public Result updateSurgery(@RequestBody Surgery surgery, HttpServletRequest request) {
         // 获取当前登录用户
-        User currentUser = (User) session.getAttribute("user");
+        User currentUser = getCurrentUser(request);
         if (currentUser == null) {
             return Result.unauthorized();
         }
 
         // 只有医生可以更新手术记录
-        if (!"医生".equals(currentUser.getRoleType())) {
+        if (!isDoctor(request)) {
             return Result.forbidden();
         }
 
@@ -331,63 +331,63 @@ public class SurgeryController {
     /**
      * 更新手术记录状态为待手术（仅医生）
      * @param surgeryId 手术记录ID
-     * @param session HTTP会话
+     * @param request HTTP请求
      * @return 更新结果
      */
     @PutMapping("/{surgeryId}/pending")
-    public Result setSurgeryPending(@PathVariable Integer surgeryId, HttpSession session) {
-        return updateSurgeryStatus(surgeryId, "待手术", session);
+    public Result setSurgeryPending(@PathVariable Integer surgeryId, HttpServletRequest request) {
+        return updateSurgeryStatus(surgeryId, "待手术", request);
     }
 
     /**
      * 更新手术记录状态为手术中（仅医生）
      * @param surgeryId 手术记录ID
-     * @param session HTTP会话
+     * @param request HTTP请求
      * @return 更新结果
      */
     @PutMapping("/{surgeryId}/in-progress")
-    public Result setSurgeryInProgress(@PathVariable Integer surgeryId, HttpSession session) {
-        return updateSurgeryStatus(surgeryId, "手术中", session);
+    public Result setSurgeryInProgress(@PathVariable Integer surgeryId, HttpServletRequest request) {
+        return updateSurgeryStatus(surgeryId, "手术中", request);
     }
 
     /**
      * 更新手术记录状态为已完成（仅医生）
      * @param surgeryId 手术记录ID
-     * @param session HTTP会话
+     * @param request HTTP请求
      * @return 更新结果
      */
     @PutMapping("/{surgeryId}/completed")
-    public Result setSurgeryCompleted(@PathVariable Integer surgeryId, HttpSession session) {
-        return updateSurgeryStatus(surgeryId, "已完成", session);
+    public Result setSurgeryCompleted(@PathVariable Integer surgeryId, HttpServletRequest request) {
+        return updateSurgeryStatus(surgeryId, "已完成", request);
     }
 
     /**
      * 更新手术记录状态为已取消（仅医生）
      * @param surgeryId 手术记录ID
-     * @param session HTTP会话
+     * @param request HTTP请求
      * @return 更新结果
      */
     @PutMapping("/{surgeryId}/cancelled")
-    public Result setSurgeryCancelled(@PathVariable Integer surgeryId, HttpSession session) {
-        return updateSurgeryStatus(surgeryId, "已取消", session);
+    public Result setSurgeryCancelled(@PathVariable Integer surgeryId, HttpServletRequest request) {
+        return updateSurgeryStatus(surgeryId, "已取消", request);
     }
 
     /**
      * 更新手术记录状态
      * @param surgeryId 手术记录ID
      * @param status 状态
-     * @param session HTTP会话
+     * @param request HTTP请求
      * @return 更新结果
      */
-    private Result updateSurgeryStatus(Integer surgeryId, String status, HttpSession session) {
+    private Result updateSurgeryStatus(Integer surgeryId, String status, HttpServletRequest request) {
         // 获取当前登录用户
-        User currentUser = (User) session.getAttribute("user");
+        User currentUser = getCurrentUser(request);
         if (currentUser == null) {
             return Result.unauthorized();
         }
 
         // 只有医生可以更新手术记录状态
-        if (!"医生".equals(currentUser.getRoleType())) {
+        if (!isDoctor(request)) {
             return Result.forbidden();
         }
 

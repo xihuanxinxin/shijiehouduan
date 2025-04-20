@@ -13,7 +13,7 @@ import com.example.shijiehouduan.service.PatientService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import javax.servlet.http.HttpSession;
+import javax.servlet.http.HttpServletRequest;
 import java.util.Date;
 import java.util.List;
 
@@ -22,7 +22,7 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/api/eye-examination")
-public class EyeExaminationController {
+public class EyeExaminationController extends BaseController {
 
     @Autowired
     private EyeExaminationService eyeExaminationService;
@@ -41,7 +41,7 @@ public class EyeExaminationController {
      * @param patientId 患者ID（可选）
      * @param doctorId 医生ID（可选）
      * @param recordId 病历ID（可选）
-     * @param session HTTP会话
+     * @param request HTTP请求
      * @return 眼科检查记录列表
      */
     @GetMapping("/list")
@@ -49,10 +49,10 @@ public class EyeExaminationController {
             @RequestParam(required = false) Integer patientId,
             @RequestParam(required = false) Integer doctorId,
             @RequestParam(required = false) Integer recordId,
-            HttpSession session) {
+            HttpServletRequest request) {
         
         // 获取当前登录用户
-        User currentUser = (User) session.getAttribute("user");
+        User currentUser = getCurrentUser(request);
         if (currentUser == null) {
             return Result.unauthorized();
         }
@@ -60,7 +60,7 @@ public class EyeExaminationController {
         // 根据角色和参数判断查询哪些眼科检查记录
         List<EyeExamination> examinations = null;
         
-        if ("患者".equals(currentUser.getRoleType())) {
+        if (isPatient(request)) {
             // 患者只能查看自己的眼科检查记录
             Patient patient = patientService.getPatientByUserId(currentUser.getUserId());
             if (patient == null) {
@@ -82,7 +82,7 @@ public class EyeExaminationController {
             if (recordId != null) {
                 examinations.removeIf(e -> !e.getRecordId().equals(recordId));
             }
-        } else if ("医生".equals(currentUser.getRoleType())) {
+        } else if (isDoctor(request)) {
             // 医生可以查看自己负责的眼科检查记录，或者指定患者的眼科检查记录
             Doctor doctor = doctorService.getDoctorByUserId(currentUser.getUserId());
             if (doctor == null) {
@@ -103,7 +103,7 @@ public class EyeExaminationController {
                 // 查询医生自己负责的所有眼科检查记录
                 examinations = eyeExaminationService.getEyeExaminationsByDoctorId(doctor.getDoctorId());
             }
-        } else if ("管理员".equals(currentUser.getRoleType())) {
+        } else if (isAdmin(request)) {
             // 管理员可以查看所有眼科检查记录
             if (patientId != null) {
                 // 查询指定患者的眼科检查记录
@@ -143,13 +143,13 @@ public class EyeExaminationController {
     /**
      * 获取眼科检查记录详情
      * @param examinationId 眼科检查记录ID
-     * @param session HTTP会话
+     * @param request HTTP请求
      * @return 眼科检查记录详情
      */
     @GetMapping("/{examinationId}")
-    public Result getEyeExamination(@PathVariable Integer examinationId, HttpSession session) {
+    public Result getEyeExamination(@PathVariable Integer examinationId, HttpServletRequest request) {
         // 获取当前登录用户
-        User currentUser = (User) session.getAttribute("user");
+        User currentUser = getCurrentUser(request);
         if (currentUser == null) {
             return Result.unauthorized();
         }
@@ -161,19 +161,19 @@ public class EyeExaminationController {
         }
 
         // 根据角色判断是否有权限查看
-        if ("患者".equals(currentUser.getRoleType())) {
+        if (isPatient(request)) {
             // 患者只能查看自己的眼科检查记录
             Patient patient = patientService.getPatientByUserId(currentUser.getUserId());
             if (patient == null || !patient.getPatientId().equals(examination.getPatientId())) {
                 return Result.forbidden();
             }
-        } else if ("医生".equals(currentUser.getRoleType())) {
+        } else if (isDoctor(request)) {
             // 医生只能查看自己负责的眼科检查记录
             Doctor doctor = doctorService.getDoctorByUserId(currentUser.getUserId());
             if (doctor == null || !doctor.getDoctorId().equals(examination.getDoctorId())) {
                 return Result.forbidden();
             }
-        } else if ("管理员".equals(currentUser.getRoleType())) {
+        } else if (isAdmin(request)) {
             // 管理员可以查看所有眼科检查记录
         } else {
             return Result.forbidden();
@@ -185,19 +185,19 @@ public class EyeExaminationController {
     /**
      * 添加眼科检查记录（仅医生）
      * @param examination 眼科检查记录信息
-     * @param session HTTP会话
+     * @param request HTTP请求
      * @return 添加结果
      */
     @PostMapping("/add")
-    public Result addEyeExamination(@RequestBody EyeExamination examination, HttpSession session) {
+    public Result addEyeExamination(@RequestBody EyeExamination examination, HttpServletRequest request) {
         // 获取当前登录用户
-        User currentUser = (User) session.getAttribute("user");
+        User currentUser = getCurrentUser(request);
         if (currentUser == null) {
             return Result.unauthorized();
         }
 
         // 只有医生可以添加眼科检查记录
-        if (!"医生".equals(currentUser.getRoleType())) {
+        if (!isDoctor(request)) {
             return Result.forbidden();
         }
 
@@ -248,19 +248,19 @@ public class EyeExaminationController {
     /**
      * 更新眼科检查记录（仅医生）
      * @param examination 眼科检查记录信息
-     * @param session HTTP会话
+     * @param request HTTP请求
      * @return 更新结果
      */
     @PutMapping("/update")
-    public Result updateEyeExamination(@RequestBody EyeExamination examination, HttpSession session) {
+    public Result updateEyeExamination(@RequestBody EyeExamination examination, HttpServletRequest request) {
         // 获取当前登录用户
-        User currentUser = (User) session.getAttribute("user");
+        User currentUser = getCurrentUser(request);
         if (currentUser == null) {
             return Result.unauthorized();
         }
 
         // 只有医生可以更新眼科检查记录
-        if (!"医生".equals(currentUser.getRoleType())) {
+        if (!isDoctor(request)) {
             return Result.forbidden();
         }
 

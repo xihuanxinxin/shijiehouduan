@@ -8,7 +8,7 @@ import com.example.shijiehouduan.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import javax.servlet.http.HttpSession;
+import javax.servlet.http.HttpServletRequest;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,7 +18,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/doctor")
-public class DoctorController {
+public class DoctorController extends BaseController {
 
     @Autowired
     private DoctorService doctorService;
@@ -69,19 +69,19 @@ public class DoctorController {
 
     /**
      * 获取当前登录医生的信息
-     * @param session HTTP会话
+     * @param request HTTP请求
      * @return 医生信息
      */
     @GetMapping("/info")
-    public Result getDoctorInfo(HttpSession session) {
+    public Result getDoctorInfo(HttpServletRequest request) {
         // 获取当前登录用户
-        User currentUser = (User) session.getAttribute("user");
+        User currentUser = getCurrentUser(request);
         if (currentUser == null) {
             return Result.unauthorized();
         }
         
         // 只有医生可以访问此接口
-        if (!"医生".equals(currentUser.getRoleType())) {
+        if (!isDoctor(request)) {
             return Result.forbidden();
         }
         
@@ -97,19 +97,19 @@ public class DoctorController {
     /**
      * 更新医生信息
      * @param doctor 医生信息
-     * @param session HTTP会话
+     * @param request HTTP请求
      * @return 更新结果
      */
     @PutMapping("/update")
-    public Result updateDoctor(@RequestBody Doctor doctor, HttpSession session) {
+    public Result updateDoctor(@RequestBody Doctor doctor, HttpServletRequest request) {
         // 获取当前登录用户
-        User currentUser = (User) session.getAttribute("user");
+        User currentUser = getCurrentUser(request);
         if (currentUser == null) {
             return Result.unauthorized();
         }
         
         // 验证权限
-        if ("医生".equals(currentUser.getRoleType())) {
+        if (isDoctor(request)) {
             // 医生只能更新自己的信息
             Doctor existingDoctor = doctorService.getDoctorByUserId(currentUser.getUserId());
             if (existingDoctor == null) {
@@ -122,7 +122,7 @@ public class DoctorController {
             
             // 不允许修改用户ID
             doctor.setUserId(existingDoctor.getUserId());
-        } else if ("管理员".equals(currentUser.getRoleType())) {
+        } else if (isAdmin(request)) {
             // 管理员可以更新所有医生信息
             Doctor existingDoctor = doctorService.getDoctorById(doctor.getDoctorId());
             if (existingDoctor == null) {
@@ -145,23 +145,23 @@ public class DoctorController {
      * 更新医生排班
      * @param doctorId 医生ID
      * @param schedule 排班信息
-     * @param session HTTP会话
+     * @param request HTTP请求
      * @return 更新结果
      */
     @PutMapping("/{doctorId}/schedule")
     public Result updateDoctorSchedule(
             @PathVariable Integer doctorId,
             @RequestBody String schedule,
-            HttpSession session) {
+            HttpServletRequest request) {
         
         // 获取当前登录用户
-        User currentUser = (User) session.getAttribute("user");
+        User currentUser = getCurrentUser(request);
         if (currentUser == null) {
             return Result.unauthorized();
         }
         
         // 验证权限
-        if ("医生".equals(currentUser.getRoleType())) {
+        if (isDoctor(request)) {
             // 医生只能更新自己的排班
             Doctor existingDoctor = doctorService.getDoctorByUserId(currentUser.getUserId());
             if (existingDoctor == null) {
@@ -171,7 +171,7 @@ public class DoctorController {
             if (!existingDoctor.getDoctorId().equals(doctorId)) {
                 return Result.forbidden();
             }
-        } else if ("管理员".equals(currentUser.getRoleType())) {
+        } else if (isAdmin(request)) {
             // 管理员可以更新所有医生排班
             Doctor existingDoctor = doctorService.getDoctorById(doctorId);
             if (existingDoctor == null) {
@@ -196,19 +196,19 @@ public class DoctorController {
     /**
      * 添加医生（仅管理员）
      * @param doctor 医生信息
-     * @param session HTTP会话
+     * @param request HTTP请求
      * @return 添加结果
      */
     @PostMapping("/add")
-    public Result addDoctor(@RequestBody Doctor doctor, HttpSession session) {
+    public Result addDoctor(@RequestBody Doctor doctor, HttpServletRequest request) {
         // 获取当前登录用户
-        User currentUser = (User) session.getAttribute("user");
+        User currentUser = getCurrentUser(request);
         if (currentUser == null) {
             return Result.unauthorized();
         }
         
         // 只有管理员可以添加医生
-        if (!"管理员".equals(currentUser.getRoleType())) {
+        if (!isAdmin(request)) {
             return Result.forbidden();
         }
         
@@ -224,7 +224,7 @@ public class DoctorController {
         }
         
         // 检查用户角色是否为医生
-        if (!"医生".equals(user.getRoleType())) {
+        if (!ROLE_DOCTOR.equals(user.getRoleType())) {
             return Result.validateFailed("只能为医生角色的用户添加医生信息");
         }
         

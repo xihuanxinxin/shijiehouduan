@@ -1,5 +1,6 @@
 package com.example.shijiehouduan.controller;
 
+import com.example.shijiehouduan.common.Result;
 import com.example.shijiehouduan.entity.Medicine;
 import com.example.shijiehouduan.entity.Prescription;
 import com.example.shijiehouduan.entity.PrescriptionMedicine;
@@ -9,7 +10,6 @@ import com.example.shijiehouduan.service.MedicineService;
 import com.example.shijiehouduan.service.PatientService;
 import com.example.shijiehouduan.service.PrescriptionService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import javax.servlet.http.HttpSession;
+import javax.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -31,7 +31,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/prescription")
-public class PrescriptionController {
+public class PrescriptionController extends BaseController {
 
     @Autowired
     private PrescriptionService prescriptionService;
@@ -49,26 +49,20 @@ public class PrescriptionController {
      * 添加处方
      */
     @PostMapping("/add")
-    public ResponseEntity<Map<String, Object>> addPrescription(@RequestBody Map<String, Object> requestData, HttpSession session) {
-        Map<String, Object> response = new HashMap<>();
-        
-        // 检查用户是否登录
-        User user = (User) session.getAttribute("user");
-        if (user == null) {
-            response.put("status", "fail");
-            response.put("message", "请先登录");
-            return ResponseEntity.status(401).body(response);
+    public Result addPrescription(@RequestBody Map<String, Object> requestData, HttpServletRequest request) {
+        // 获取当前登录用户
+        User currentUser = getCurrentUser(request);
+        if (currentUser == null) {
+            return Result.unauthorized();
         }
         
         // 检查是否为医生用户
-        if (!"医生".equals(user.getRoleType())) {
-            response.put("status", "fail");
-            response.put("message", "只有医生用户才能开具处方");
-            return ResponseEntity.status(403).body(response);
+        if (!isDoctor(request)) {
+            return Result.forbidden();
         }
         
         // 获取医生ID
-        Integer doctorId = doctorService.getDoctorByUserId(user.getUserId()).getDoctorId();
+        Integer doctorId = doctorService.getDoctorByUserId(currentUser.getUserId()).getDoctorId();
         
         try {
             // 解析处方基本信息
@@ -99,15 +93,10 @@ public class PrescriptionController {
             // 保存处方
             Integer prescriptionId = prescriptionService.addPrescription(prescription, prescriptionMedicines);
             
-            response.put("status", "success");
-            response.put("message", "处方开具成功");
-            response.put("data", prescriptionId);
-            return ResponseEntity.ok(response);
+            return Result.success("处方开具成功", prescriptionId);
             
         } catch (Exception e) {
-            response.put("status", "fail");
-            response.put("message", "处方开具失败: " + e.getMessage());
-            return ResponseEntity.status(500).body(response);
+            return Result.error("处方开具失败: " + e.getMessage());
         }
     }
 
@@ -115,34 +104,30 @@ public class PrescriptionController {
      * 获取处方列表
      */
     @GetMapping("/list")
-    public ResponseEntity<Map<String, Object>> getPrescriptionList(
+    public Result getPrescriptionList(
             @RequestParam(required = false) Integer patientId,
             @RequestParam(required = false) Integer doctorId,
             @RequestParam(required = false) Integer recordId,
             @RequestParam(required = false) String status,
-            HttpSession session) {
+            HttpServletRequest request) {
         
-        Map<String, Object> response = new HashMap<>();
-        
-        // 检查用户是否登录
-        User user = (User) session.getAttribute("user");
-        if (user == null) {
-            response.put("status", "fail");
-            response.put("message", "请先登录");
-            return ResponseEntity.status(401).body(response);
+        // 获取当前登录用户
+        User currentUser = getCurrentUser(request);
+        if (currentUser == null) {
+            return Result.unauthorized();
         }
         
         List<Prescription> prescriptions;
         
         // 根据用户角色和查询参数获取处方列表
-        if ("患者".equals(user.getRoleType())) {
+        if (isPatient(request)) {
             // 患者只能查看自己的处方
-            Integer userPatientId = patientService.getPatientByUserId(user.getUserId()).getPatientId();
+            Integer userPatientId = patientService.getPatientByUserId(currentUser.getUserId()).getPatientId();
             prescriptions = prescriptionService.getPrescriptionsByPatientId(userPatientId);
             
-        } else if ("医生".equals(user.getRoleType())) {
+        } else if (isDoctor(request)) {
             // 医生可以查看自己开具的处方，或指定患者的处方
-            Integer userDoctorId = doctorService.getDoctorByUserId(user.getUserId()).getDoctorId();
+            Integer userDoctorId = doctorService.getDoctorByUserId(currentUser.getUserId()).getDoctorId();
             
             if (patientId != null) {
                 prescriptions = prescriptionService.getPrescriptionsByPatientId(patientId);
@@ -152,7 +137,7 @@ public class PrescriptionController {
                 prescriptions = prescriptionService.getPrescriptionsByDoctorId(userDoctorId);
             }
             
-        } else if ("管理员".equals(user.getRoleType())) {
+        } else if (isAdmin(request)) {
             // 管理员可以查看所有处方，或按条件筛选
             if (patientId != null) {
                 prescriptions = prescriptionService.getPrescriptionsByPatientId(patientId);
@@ -166,150 +151,113 @@ public class PrescriptionController {
                 prescriptions = prescriptionService.getAllPrescriptions();
             }
         } else {
-            response.put("status", "fail");
-            response.put("message", "无效的用户角色");
-            return ResponseEntity.status(400).body(response);
+            return Result.forbidden();
         }
         
         // 如果指定了status参数，进一步过滤
-        if (status != null && !"管理员".equals(user.getRoleType())) {
+        if (status != null && !isAdmin(request)) {
             prescriptions.removeIf(p -> !p.getStatus().equals(status));
         }
         
-        response.put("status", "success");
-        response.put("data", prescriptions);
-        return ResponseEntity.ok(response);
+        return Result.success(prescriptions);
     }
 
     /**
      * 获取处方详情
      */
     @GetMapping("/{prescriptionId}")
-    public ResponseEntity<Map<String, Object>> getPrescriptionDetail(@PathVariable Integer prescriptionId, HttpSession session) {
-        Map<String, Object> response = new HashMap<>();
-        
-        // 检查用户是否登录
-        User user = (User) session.getAttribute("user");
-        if (user == null) {
-            response.put("status", "fail");
-            response.put("message", "请先登录");
-            return ResponseEntity.status(401).body(response);
+    public Result getPrescriptionDetail(@PathVariable Integer prescriptionId, HttpServletRequest request) {
+        // 获取当前登录用户
+        User currentUser = getCurrentUser(request);
+        if (currentUser == null) {
+            return Result.unauthorized();
         }
         
         // 获取处方详情
         Map<String, Object> prescriptionDetail = prescriptionService.getPrescriptionDetail(prescriptionId);
         if (prescriptionDetail == null) {
-            response.put("status", "fail");
-            response.put("message", "处方不存在");
-            return ResponseEntity.status(404).body(response);
+            return Result.error("处方不存在");
         }
         
         Prescription prescription = (Prescription) prescriptionDetail.get("prescription");
         
         // 检查权限
-        if ("患者".equals(user.getRoleType())) {
+        if (isPatient(request)) {
             // 患者只能查看自己的处方
-            Integer userPatientId = patientService.getPatientByUserId(user.getUserId()).getPatientId();
+            Integer userPatientId = patientService.getPatientByUserId(currentUser.getUserId()).getPatientId();
             if (!prescription.getPatientId().equals(userPatientId)) {
-                response.put("status", "fail");
-                response.put("message", "无权查看此处方");
-                return ResponseEntity.status(403).body(response);
+                return Result.forbidden();
             }
-        } else if ("医生".equals(user.getRoleType())) {
+        } else if (isDoctor(request)) {
             // 医生只能查看自己开具的处方
-            Integer userDoctorId = doctorService.getDoctorByUserId(user.getUserId()).getDoctorId();
+            Integer userDoctorId = doctorService.getDoctorByUserId(currentUser.getUserId()).getDoctorId();
             if (!prescription.getDoctorId().equals(userDoctorId)) {
-                response.put("status", "fail");
-                response.put("message", "无权查看此处方");
-                return ResponseEntity.status(403).body(response);
+                return Result.forbidden();
             }
+        } else if (!isAdmin(request)) {
+            return Result.forbidden();
         }
         
-        response.put("status", "success");
-        response.put("data", prescriptionDetail);
-        return ResponseEntity.ok(response);
+        return Result.success(prescriptionDetail);
     }
 
     /**
      * 更新处方状态
      */
     @PutMapping("/{prescriptionId}/status")
-    public ResponseEntity<Map<String, Object>> updatePrescriptionStatus(@PathVariable Integer prescriptionId, @RequestBody String status, HttpSession session) {
-        Map<String, Object> response = new HashMap<>();
-        
-        // 检查用户是否登录
-        User user = (User) session.getAttribute("user");
-        if (user == null) {
-            response.put("status", "fail");
-            response.put("message", "请先登录");
-            return ResponseEntity.status(401).body(response);
+    public Result updatePrescriptionStatus(@PathVariable Integer prescriptionId, @RequestBody String status, HttpServletRequest request) {
+        // 获取当前登录用户
+        User currentUser = getCurrentUser(request);
+        if (currentUser == null) {
+            return Result.unauthorized();
         }
         
         // 只有医生和管理员可以更新处方状态
-        if (!"医生".equals(user.getRoleType()) && !"管理员".equals(user.getRoleType())) {
-            response.put("status", "fail");
-            response.put("message", "无权更新处方状态");
-            return ResponseEntity.status(403).body(response);
+        if (!isDoctor(request) && !isAdmin(request)) {
+            return Result.forbidden();
         }
         
         // 验证状态值
         if (!"待发药".equals(status) && !"已发药".equals(status) && !"已取消".equals(status)) {
-            response.put("status", "fail");
-            response.put("message", "无效的处方状态");
-            return ResponseEntity.status(400).body(response);
+            return Result.validateFailed("无效的处方状态");
         }
         
         // 如果是医生，需要验证是该医生开具的处方
-        if ("医生".equals(user.getRoleType())) {
+        if (isDoctor(request)) {
             Prescription prescription = prescriptionService.getPrescriptionById(prescriptionId);
             if (prescription == null) {
-                response.put("status", "fail");
-                response.put("message", "处方不存在");
-                return ResponseEntity.status(404).body(response);
+                return Result.error("处方不存在");
             }
             
-            Integer userDoctorId = doctorService.getDoctorByUserId(user.getUserId()).getDoctorId();
+            Integer userDoctorId = doctorService.getDoctorByUserId(currentUser.getUserId()).getDoctorId();
             if (!prescription.getDoctorId().equals(userDoctorId)) {
-                response.put("status", "fail");
-                response.put("message", "无权更新此处方状态");
-                return ResponseEntity.status(403).body(response);
+                return Result.forbidden();
             }
         }
         
         // 更新处方状态
         boolean result = prescriptionService.updatePrescriptionStatus(prescriptionId, status);
         if (result) {
-            response.put("status", "success");
-            response.put("message", "处方状态更新成功");
+            return Result.success("处方状态更新成功");
         } else {
-            response.put("status", "fail");
-            response.put("message", "处方状态更新失败");
-            return ResponseEntity.status(500).body(response);
+            return Result.error("处方状态更新失败");
         }
-        
-        return ResponseEntity.ok(response);
     }
     
     /**
      * 获取药品列表（供医生开处方使用）
      */
     @GetMapping("/medicines")
-    public ResponseEntity<Map<String, Object>> getMedicineList(HttpSession session) {
-        Map<String, Object> response = new HashMap<>();
-        
-        // 检查用户是否登录
-        User user = (User) session.getAttribute("user");
-        if (user == null) {
-            response.put("status", "fail");
-            response.put("message", "请先登录");
-            return ResponseEntity.status(401).body(response);
+    public Result getMedicineList(HttpServletRequest request) {
+        // 获取当前登录用户
+        User currentUser = getCurrentUser(request);
+        if (currentUser == null) {
+            return Result.unauthorized();
         }
         
         // 获取药品列表
         List<Medicine> medicines = medicineService.getAllMedicines();
         
-        response.put("status", "success");
-        response.put("data", medicines);
-        return ResponseEntity.ok(response);
+        return Result.success(medicines);
     }
 } 
