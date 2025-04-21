@@ -1,8 +1,10 @@
 package com.example.shijiehouduan.service.impl;
 
+import com.example.shijiehouduan.dao.DoctorDao;
 import com.example.shijiehouduan.dao.MedicineDao;
 import com.example.shijiehouduan.dao.PrescriptionDao;
 import com.example.shijiehouduan.dao.PrescriptionMedicineDao;
+import com.example.shijiehouduan.entity.Doctor;
 import com.example.shijiehouduan.entity.Medicine;
 import com.example.shijiehouduan.entity.Prescription;
 import com.example.shijiehouduan.entity.PrescriptionMedicine;
@@ -32,6 +34,9 @@ public class PrescriptionServiceImpl implements PrescriptionService {
     
     @Autowired
     private MedicineDao medicineDao;
+
+    @Autowired
+    private DoctorDao doctorDao;
 
     @Override
     public Prescription getPrescriptionById(Integer prescriptionId) {
@@ -126,6 +131,10 @@ public class PrescriptionServiceImpl implements PrescriptionService {
             return null;
         }
         result.put("prescription", prescription);
+        
+        // 获取医生信息
+        Doctor doctor = doctorDao.findById(prescription.getDoctorId());
+        result.put("doctor", doctor);
         
         // 获取处方药品信息
         List<Map<String, Object>> medicineDetailList = new ArrayList<>();

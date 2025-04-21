@@ -16,6 +16,10 @@ public class Prescription {
     private String status;           // 状态（待发药、已发药、已取消）
     private String remarks;          // 备注
     private Date createdAt;          // 创建时间
+    
+    // 关联属性
+    private Patient patient;         // 患者信息
+    private Doctor doctor;           // 医生信息
 
     public Prescription() {
     }
@@ -113,6 +117,22 @@ public class Prescription {
 
     public void setCreatedAt(Date createdAt) {
         this.createdAt = createdAt;
+    }
+    
+    public Patient getPatient() {
+        return patient;
+    }
+
+    public void setPatient(Patient patient) {
+        this.patient = patient;
+    }
+
+    public Doctor getDoctor() {
+        return doctor;
+    }
+
+    public void setDoctor(Doctor doctor) {
+        this.doctor = doctor;
     }
 
     @Override

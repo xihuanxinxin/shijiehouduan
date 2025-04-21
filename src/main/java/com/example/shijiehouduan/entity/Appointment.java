@@ -24,6 +24,9 @@ public class Appointment implements Serializable {
     
     // 关联的医生信息
     private Doctor doctor;
+    
+    // 支付状态
+    private String paymentStatus; // 待支付、已支付、已退款、部分退款
 
     public Appointment() {
     }
@@ -115,6 +118,14 @@ public class Appointment implements Serializable {
     public void setDoctor(Doctor doctor) {
         this.doctor = doctor;
     }
+    
+    public String getPaymentStatus() {
+        return paymentStatus;
+    }
+
+    public void setPaymentStatus(String paymentStatus) {
+        this.paymentStatus = paymentStatus;
+    }
 
     @Override
     public String toString() {
@@ -128,6 +139,7 @@ public class Appointment implements Serializable {
                 ", fee=" + fee +
                 ", status='" + status + '\'' +
                 ", createdAt=" + createdAt +
+                ", paymentStatus='" + paymentStatus + '\'' +
                 '}';
     }
 } 

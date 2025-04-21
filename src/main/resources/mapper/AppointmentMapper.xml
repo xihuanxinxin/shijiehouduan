@@ -14,6 +14,7 @@
         <result column="fee" property="fee"/>
         <result column="status" property="status"/>
         <result column="created_at" property="createdAt"/>
+        <result column="payment_status" property="paymentStatus"/>
         <!-- 关联患者信息 -->
         <association property="patient" javaType="com.example.shijiehouduan.entity.Patient">
             <id column="patient_id" property="patientId"/>
@@ -46,12 +47,24 @@
         p.user_id as p_user_id, p.id_card as p_id_card,
         pu.name as p_name, pu.gender as p_gender, pu.phone as p_phone,
         d.user_id as d_user_id, d.specialty as d_specialty, d.title as d_title,
-        du.name as d_name
+        du.name as d_name,
+        pm.payment_status
         FROM appointments a
         LEFT JOIN patients p ON a.patient_id = p.patient_id
         LEFT JOIN users pu ON p.user_id = pu.user_id
         LEFT JOIN doctors d ON a.doctor_id = d.doctor_id
         LEFT JOIN users du ON d.user_id = du.user_id
+        LEFT JOIN (
+            SELECT p1.order_id, p1.payment_status
+            FROM payments p1
+            WHERE p1.order_type = '挂号'
+            AND p1.payment_time = (
+                SELECT MAX(p2.payment_time)
+                FROM payments p2
+                WHERE p2.order_id = p1.order_id
+                AND p2.order_type = '挂号'
+            )
+        ) pm ON a.appointment_id = pm.order_id
         WHERE a.appointment_id = #{appointmentId}
     </select>
 
@@ -62,12 +75,24 @@
         p.user_id as p_user_id, p.id_card as p_id_card,
         pu.name as p_name, pu.gender as p_gender, pu.phone as p_phone,
         d.user_id as d_user_id, d.specialty as d_specialty, d.title as d_title,
-        du.name as d_name
+        du.name as d_name,
+        pm.payment_status
         FROM appointments a
         LEFT JOIN patients p ON a.patient_id = p.patient_id
         LEFT JOIN users pu ON p.user_id = pu.user_id
         LEFT JOIN doctors d ON a.doctor_id = d.doctor_id
         LEFT JOIN users du ON d.user_id = du.user_id
+        LEFT JOIN (
+            SELECT p1.order_id, p1.payment_status
+            FROM payments p1
+            WHERE p1.order_type = '挂号'
+            AND p1.payment_time = (
+                SELECT MAX(p2.payment_time)
+                FROM payments p2
+                WHERE p2.order_id = p1.order_id
+                AND p2.order_type = '挂号'
+            )
+        ) pm ON a.appointment_id = pm.order_id
         WHERE a.patient_id = #{patientId}
         ORDER BY a.appointment_date DESC, a.time_slot
     </select>
@@ -79,12 +104,24 @@
         p.user_id as p_user_id, p.id_card as p_id_card,
         pu.name as p_name, pu.gender as p_gender, pu.phone as p_phone,
         d.user_id as d_user_id, d.specialty as d_specialty, d.title as d_title,
-        du.name as d_name
+        du.name as d_name,
+        pm.payment_status
         FROM appointments a
         LEFT JOIN patients p ON a.patient_id = p.patient_id
         LEFT JOIN users pu ON p.user_id = pu.user_id
         LEFT JOIN doctors d ON a.doctor_id = d.doctor_id
         LEFT JOIN users du ON d.user_id = du.user_id
+        LEFT JOIN (
+            SELECT p1.order_id, p1.payment_status
+            FROM payments p1
+            WHERE p1.order_type = '挂号'
+            AND p1.payment_time = (
+                SELECT MAX(p2.payment_time)
+                FROM payments p2
+                WHERE p2.order_id = p1.order_id
+                AND p2.order_type = '挂号'
+            )
+        ) pm ON a.appointment_id = pm.order_id
         WHERE a.doctor_id = #{doctorId}
         ORDER BY a.appointment_date DESC, a.time_slot
     </select>
@@ -96,12 +133,24 @@
         p.user_id as p_user_id, p.id_card as p_id_card,
         pu.name as p_name, pu.gender as p_gender, pu.phone as p_phone,
         d.user_id as d_user_id, d.specialty as d_specialty, d.title as d_title,
-        du.name as d_name
+        du.name as d_name,
+        pm.payment_status
         FROM appointments a
         LEFT JOIN patients p ON a.patient_id = p.patient_id
         LEFT JOIN users pu ON p.user_id = pu.user_id
         LEFT JOIN doctors d ON a.doctor_id = d.doctor_id
         LEFT JOIN users du ON d.user_id = du.user_id
+        LEFT JOIN (
+            SELECT p1.order_id, p1.payment_status
+            FROM payments p1
+            WHERE p1.order_type = '挂号'
+            AND p1.payment_time = (
+                SELECT MAX(p2.payment_time)
+                FROM payments p2
+                WHERE p2.order_id = p1.order_id
+                AND p2.order_type = '挂号'
+            )
+        ) pm ON a.appointment_id = pm.order_id
         WHERE a.doctor_id = #{doctorId} AND DATE(a.appointment_date) = DATE(#{appointmentDate})
         ORDER BY a.time_slot
     </select>
@@ -113,12 +162,24 @@
         p.user_id as p_user_id, p.id_card as p_id_card,
         pu.name as p_name, pu.gender as p_gender, pu.phone as p_phone,
         d.user_id as d_user_id, d.specialty as d_specialty, d.title as d_title,
-        du.name as d_name
+        du.name as d_name,
+        pm.payment_status
         FROM appointments a
         LEFT JOIN patients p ON a.patient_id = p.patient_id
         LEFT JOIN users pu ON p.user_id = pu.user_id
         LEFT JOIN doctors d ON a.doctor_id = d.doctor_id
         LEFT JOIN users du ON d.user_id = du.user_id
+        LEFT JOIN (
+            SELECT p1.order_id, p1.payment_status
+            FROM payments p1
+            WHERE p1.order_type = '挂号'
+            AND p1.payment_time = (
+                SELECT MAX(p2.payment_time)
+                FROM payments p2
+                WHERE p2.order_id = p1.order_id
+                AND p2.order_type = '挂号'
+            )
+        ) pm ON a.appointment_id = pm.order_id
         WHERE a.status = #{status}
         ORDER BY a.appointment_date DESC, a.time_slot
     </select>

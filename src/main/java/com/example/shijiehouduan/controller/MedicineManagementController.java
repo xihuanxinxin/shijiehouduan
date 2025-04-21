@@ -71,8 +71,8 @@ public class MedicineManagementController extends BaseController {
      */
     @GetMapping("/search")
     public Result searchMedicinesByName(@RequestParam String name, HttpServletRequest request) {
-        // 验证是否为管理员
-        if (!isAdmin(request)) {
+        // 验证是否为管理员或医生
+        if (!isAdmin(request) && !isDoctor(request)) {
             return Result.forbidden();
         }
         
@@ -89,8 +89,8 @@ public class MedicineManagementController extends BaseController {
      */
     @GetMapping("/manufacturer")
     public Result searchMedicinesByManufacturer(@RequestParam String manufacturer, HttpServletRequest request) {
-        // 验证是否为管理员
-        if (!isAdmin(request)) {
+        // 验证是否为管理员或医生
+        if (!isAdmin(request) && !isDoctor(request)) {
             return Result.forbidden();
         }
         

@@ -285,9 +285,10 @@ public class PaymentController extends BaseController {
         // 患者只能为自己添加支付记录
         if (isPatient(request)) {
             Integer patientId = getPatientIdFromUser(currentUser);
-            if (!payment.getPatientId().equals(patientId)) {
-                return Result.forbidden();
-            }
+            payment.setPatientId(patientId); // 直接设置患者ID，不进行检查
+        } else if (payment.getPatientId() == null) {
+            // 如果不是患者角色且没有提供患者ID，则返回验证失败
+            return Result.validateFailed("请指定患者ID");
         }
         
         try {
@@ -299,6 +300,46 @@ public class PaymentController extends BaseController {
             }
         } catch (Exception e) {
             return Result.error("新增支付记录失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 支付接口 - 兼容接口文档中的路径
+     * @param payment 支付信息
+     * @param request HTTP请求
+     * @return 支付结果
+     */
+    @PostMapping("/pay")
+    public Result pay(@RequestBody Payment payment, HttpServletRequest request) {
+        // 获取当前登录用户
+        User currentUser = getCurrentUser(request);
+        if (currentUser == null) {
+            return Result.unauthorized();
+        }
+        
+        // 患者只能为自己支付
+        if (isPatient(request)) {
+            Integer patientId = getPatientIdFromUser(currentUser);
+            payment.setPatientId(patientId); // 直接设置患者ID
+        } else if (payment.getPatientId() == null) {
+            // 如果不是患者角色且没有提供患者ID，则返回验证失败
+            return Result.validateFailed("请指定患者ID");
+        }
+        
+        // 设置支付状态为已支付
+        payment.setPaymentStatus("已支付");
+        payment.setPaymentTime(new Date());
+        payment.setCreatedAt(new Date());
+        
+        try {
+            boolean success = paymentService.addPayment(payment);
+            if (success) {
+                return Result.success("支付成功", payment);
+            } else {
+                return Result.error("支付失败");
+            }
+        } catch (Exception e) {
+            return Result.error("支付失败: " + e.getMessage());
         }
     }
 

@@ -2,8 +2,43 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.example.shijiehouduan.dao.PrescriptionDao">
     
-    <!-- 处方结果映射 -->
+    <!-- 处方结果映射（带关联信息） -->
     <resultMap id="PrescriptionResultMap" type="com.example.shijiehouduan.entity.Prescription">
+        <id property="prescriptionId" column="prescription_id" />
+        <result property="recordId" column="record_id" />
+        <result property="patientId" column="patient_id" />
+        <result property="doctorId" column="doctor_id" />
+        <result property="issueDate" column="issue_date" />
+        <result property="diagnosis" column="diagnosis" />
+        <result property="totalFee" column="total_fee" />
+        <result property="status" column="status" />
+        <result property="remarks" column="remarks" />
+        <result property="createdAt" column="created_at" />
+        <!-- 关联患者信息 -->
+        <association property="patient" javaType="com.example.shijiehouduan.entity.Patient">
+            <id column="patient_id" property="patientId"/>
+            <result column="p_user_id" property="userId"/>
+            <result column="p_id_card" property="idCard"/>
+            <association property="user" javaType="com.example.shijiehouduan.entity.User">
+                <result column="p_name" property="name"/>
+                <result column="p_gender" property="gender"/>
+                <result column="p_phone" property="phone"/>
+            </association>
+        </association>
+        <!-- 关联医生信息 -->
+        <association property="doctor" javaType="com.example.shijiehouduan.entity.Doctor">
+            <id column="doctor_id" property="doctorId"/>
+            <result column="d_user_id" property="userId"/>
+            <result column="d_specialty" property="specialty"/>
+            <result column="d_title" property="title"/>
+            <association property="user" javaType="com.example.shijiehouduan.entity.User">
+                <result column="d_name" property="name"/>
+            </association>
+        </association>
+    </resultMap>
+    
+    <!-- 处方简单结果映射（不包含关联信息，用于列表查询） -->
+    <resultMap id="PrescriptionSimpleResultMap" type="com.example.shijiehouduan.entity.Prescription">
         <id property="prescriptionId" column="prescription_id" />
         <result property="recordId" column="record_id" />
         <result property="patientId" column="patient_id" />
@@ -18,54 +53,108 @@
     
     <!-- 公共查询列 -->
     <sql id="Base_Column_List">
-        prescription_id, record_id, patient_id, doctor_id, issue_date, 
-        diagnosis, total_fee, status, remarks, created_at
+        p.prescription_id, p.record_id, p.patient_id, p.doctor_id, p.issue_date, 
+        p.diagnosis, p.total_fee, p.status, p.remarks, p.created_at
+    </sql>
+    
+    <!-- 关联患者表的查询结果列 -->
+    <sql id="Patient_Column_List">
+        pt.user_id as p_user_id, pt.id_card as p_id_card, 
+        pu.name as p_name, pu.gender as p_gender, pu.phone as p_phone
+    </sql>
+    
+    <!-- 关联医生表的查询结果列 -->
+    <sql id="Doctor_Column_List">
+        d.user_id as d_user_id, d.specialty as d_specialty, d.title as d_title,
+        du.name as d_name
     </sql>
     
     <!-- 根据ID查询处方 -->
     <select id="findById" resultMap="PrescriptionResultMap">
-        SELECT <include refid="Base_Column_List" />
-        FROM prescriptions
-        WHERE prescription_id = #{prescriptionId}
+        SELECT 
+            <include refid="Base_Column_List" />,
+            <include refid="Patient_Column_List" />,
+            <include refid="Doctor_Column_List" />
+        FROM prescriptions p
+        LEFT JOIN patients pt ON p.patient_id = pt.patient_id
+        LEFT JOIN users pu ON pt.user_id = pu.user_id
+        LEFT JOIN doctors d ON p.doctor_id = d.doctor_id
+        LEFT JOIN users du ON d.user_id = du.user_id
+        WHERE p.prescription_id = #{prescriptionId}
     </select>
     
     <!-- 根据患者ID查询处方列表 -->
     <select id="findByPatientId" resultMap="PrescriptionResultMap">
-        SELECT <include refid="Base_Column_List" />
-        FROM prescriptions
-        WHERE patient_id = #{patientId}
-        ORDER BY issue_date DESC
+        SELECT 
+            <include refid="Base_Column_List" />,
+            <include refid="Patient_Column_List" />,
+            <include refid="Doctor_Column_List" />
+        FROM prescriptions p
+        LEFT JOIN patients pt ON p.patient_id = pt.patient_id
+        LEFT JOIN users pu ON pt.user_id = pu.user_id
+        LEFT JOIN doctors d ON p.doctor_id = d.doctor_id
+        LEFT JOIN users du ON d.user_id = du.user_id
+        WHERE p.patient_id = #{patientId}
+        ORDER BY p.issue_date DESC
     </select>
     
     <!-- 根据医生ID查询处方列表 -->
     <select id="findByDoctorId" resultMap="PrescriptionResultMap">
-        SELECT <include refid="Base_Column_List" />
-        FROM prescriptions
-        WHERE doctor_id = #{doctorId}
-        ORDER BY issue_date DESC
+        SELECT 
+            <include refid="Base_Column_List" />,
+            <include refid="Patient_Column_List" />,
+            <include refid="Doctor_Column_List" />
+        FROM prescriptions p
+        LEFT JOIN patients pt ON p.patient_id = pt.patient_id
+        LEFT JOIN users pu ON pt.user_id = pu.user_id
+        LEFT JOIN doctors d ON p.doctor_id = d.doctor_id
+        LEFT JOIN users du ON d.user_id = du.user_id
+        WHERE p.doctor_id = #{doctorId}
+        ORDER BY p.issue_date DESC
     </select>
     
     <!-- 根据病历ID查询处方列表 -->
     <select id="findByRecordId" resultMap="PrescriptionResultMap">
-        SELECT <include refid="Base_Column_List" />
-        FROM prescriptions
-        WHERE record_id = #{recordId}
-        ORDER BY issue_date DESC
+        SELECT 
+            <include refid="Base_Column_List" />,
+            <include refid="Patient_Column_List" />,
+            <include refid="Doctor_Column_List" />
+        FROM prescriptions p
+        LEFT JOIN patients pt ON p.patient_id = pt.patient_id
+        LEFT JOIN users pu ON pt.user_id = pu.user_id
+        LEFT JOIN doctors d ON p.doctor_id = d.doctor_id
+        LEFT JOIN users du ON d.user_id = du.user_id
+        WHERE p.record_id = #{recordId}
+        ORDER BY p.issue_date DESC
     </select>
     
     <!-- 根据状态查询处方列表 -->
     <select id="findByStatus" resultMap="PrescriptionResultMap">
-        SELECT <include refid="Base_Column_List" />
-        FROM prescriptions
-        WHERE status = #{status}
-        ORDER BY issue_date DESC
+        SELECT 
+            <include refid="Base_Column_List" />,
+            <include refid="Patient_Column_List" />,
+            <include refid="Doctor_Column_List" />
+        FROM prescriptions p
+        LEFT JOIN patients pt ON p.patient_id = pt.patient_id
+        LEFT JOIN users pu ON pt.user_id = pu.user_id
+        LEFT JOIN doctors d ON p.doctor_id = d.doctor_id
+        LEFT JOIN users du ON d.user_id = du.user_id
+        WHERE p.status = #{status}
+        ORDER BY p.issue_date DESC
     </select>
     
     <!-- 查询所有处方 -->
     <select id="findAll" resultMap="PrescriptionResultMap">
-        SELECT <include refid="Base_Column_List" />
-        FROM prescriptions
-        ORDER BY issue_date DESC
+        SELECT 
+            <include refid="Base_Column_List" />,
+            <include refid="Patient_Column_List" />,
+            <include refid="Doctor_Column_List" />
+        FROM prescriptions p
+        LEFT JOIN patients pt ON p.patient_id = pt.patient_id
+        LEFT JOIN users pu ON pt.user_id = pu.user_id
+        LEFT JOIN doctors d ON p.doctor_id = d.doctor_id
+        LEFT JOIN users du ON d.user_id = du.user_id
+        ORDER BY p.issue_date DESC
     </select>
     
     <!-- 添加处方 -->
