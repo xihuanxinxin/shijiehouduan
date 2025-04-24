@@ -5,6 +5,7 @@ import com.example.shijiehouduan.entity.AdminUser;
 import com.example.shijiehouduan.entity.User;
 import com.example.shijiehouduan.service.AdminUserService;
 import com.example.shijiehouduan.service.SystemLogService;
+import com.example.shijiehouduan.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -27,6 +28,9 @@ public class AdminUserController extends BaseController {
     
     @Autowired
     private SystemLogService systemLogService;
+
+    @Autowired
+    private UserService userService;
 
     /**
      * 管理员登录
@@ -143,7 +147,23 @@ public class AdminUserController extends BaseController {
                     Integer userId = jwtUtil.getUserIdFromToken(token);
                     if (userId != null) {
                         // 使用ID查询管理员
-                        return adminUserService.getAdminById(userId);
+                        AdminUser adminUser = adminUserService.getAdminById(userId);
+                        if (adminUser != null) {
+                            return adminUser;
+                        }
+                        
+                        // 增加兼容：如果在AdminUser表中找不到，但用户确实有管理员权限
+                        // 通过用户ID在User表中查找，并临时创建一个AdminUser对象
+                        User user = userService.getUserById(userId);
+                        if (user != null && ROLE_ADMIN.equals(user.getRoleType())) {
+                            AdminUser tempAdmin = new AdminUser();
+                            tempAdmin.setAdminId(user.getUserId());
+                            tempAdmin.setUsername(user.getUsername());
+                            tempAdmin.setName(user.getName());
+                            tempAdmin.setStatus(user.getStatus());
+                            tempAdmin.setRole("管理员");
+                            return tempAdmin;
+                        }
                     }
                 } catch (Exception e) {
                     // token解析失败
@@ -153,7 +173,24 @@ public class AdminUserController extends BaseController {
         
         // 兼容旧代码，从session获取
         HttpSession session = request.getSession();
-        return (AdminUser) session.getAttribute("adminUser");
+        AdminUser sessionAdmin = (AdminUser) session.getAttribute("adminUser");
+        if (sessionAdmin != null) {
+            return sessionAdmin;
+        }
+        
+        // 额外兼容：如果session中有user且是管理员角色，也创建临时AdminUser对象
+        User sessionUser = (User) session.getAttribute("user");
+        if (sessionUser != null && ROLE_ADMIN.equals(sessionUser.getRoleType())) {
+            AdminUser tempAdmin = new AdminUser();
+            tempAdmin.setAdminId(sessionUser.getUserId());
+            tempAdmin.setUsername(sessionUser.getUsername());
+            tempAdmin.setName(sessionUser.getName());
+            tempAdmin.setStatus(sessionUser.getStatus());
+            tempAdmin.setRole("管理员");
+            return tempAdmin;
+        }
+        
+        return null;
     }
 
     /**
@@ -341,14 +378,50 @@ public class AdminUserController extends BaseController {
                 return Result.error("用户名已存在");
             }
             
+            // 判断是否需要同时在users表中创建用户
+            User user = adminUser.getUser();
+            if (user != null) {
+                // 检查user表中是否已存在相同用户名
+                if (userService.checkUsernameExists(adminUser.getUsername())) {
+                    return Result.error("用户名在用户表中已存在");
+                }
+                
+                // 设置用户信息
+                user.setUsername(adminUser.getUsername()); // 确保用户名一致
+                user.setPassword(adminUser.getPassword()); // 确保密码一致
+                if (user.getName() == null) {
+                    user.setName(adminUser.getName()); // 如果没有提供用户姓名，使用管理员姓名
+                }
+                user.setRoleType(ROLE_ADMIN); // 设置为管理员角色
+                user.setStatus("启用"); // 设置状态为启用
+                user.setCreatedAt(new Date()); // 设置创建时间
+                
+                // 在用户表中添加用户
+                boolean userResult = userService.addUser(user);
+                if (!userResult) {
+                    return Result.error("在用户表中创建管理员记录失败");
+                }
+            }
+            
+            // 在管理员表中添加管理员
             boolean success = adminUserService.addAdmin(adminUser);
             if (success) {
                 // 记录操作日志
                 systemLogService.addLog(currentAdmin.getAdminId(), "添加管理员", 
-                        "添加管理员: " + adminUser.getUsername(), getIpAddress(request));
+                        "添加管理员: " + adminUser.getUsername() + (user != null ? " (同时创建用户记录)" : ""), getIpAddress(request));
                 
-                return Result.success("添加管理员成功");
+                Map<String, Object> resultData = new HashMap<>();
+                resultData.put("adminUser", adminUser);
+                if (user != null) {
+                    resultData.put("user", user);
+                }
+                
+                return Result.success("添加管理员成功", resultData);
             } else {
+                // 如果管理员添加失败但已创建了用户，应该回滚或删除用户
+                if (user != null && user.getUserId() != null) {
+                    userService.deleteUser(user.getUserId());
+                }
                 return Result.error("添加管理员失败");
             }
         } catch (Exception e) {

@@ -3,8 +3,10 @@ package com.example.shijiehouduan.controller;
 import com.example.shijiehouduan.common.Result;
 import com.example.shijiehouduan.entity.Doctor;
 import com.example.shijiehouduan.entity.Bed;
+import com.example.shijiehouduan.entity.User;
 import com.example.shijiehouduan.service.DoctorService;
 import com.example.shijiehouduan.service.BedService;
+import com.example.shijiehouduan.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,6 +26,9 @@ public class MedicalResourceController extends BaseController {
     
     @Autowired
     private BedService bedService;
+
+    @Autowired
+    private UserService userService;
 
     /**
      * 获取所有医生列表
@@ -94,9 +99,52 @@ public class MedicalResourceController extends BaseController {
         }
         
         try {
+            // 判断是创建新用户+医生，还是只创建医生
+            if (doctor.getUserId() == null && doctor.getUser() != null) {
+                // 需要先创建用户，再创建医生
+                User user = doctor.getUser();
+                
+                // 设置用户角色为医生
+                user.setRoleType(ROLE_DOCTOR);
+                
+                // 设置默认状态为启用（如果未提供）
+                if (user.getStatus() == null) {
+                    user.setStatus("启用");
+                }
+                
+                // 设置创建时间
+                user.setCreatedAt(new Date());
+                
+                // 创建用户
+                boolean userResult = userService.addUser(user);
+                if (!userResult) {
+                    return Result.error("创建用户失败，可能用户名已存在");
+                }
+                
+                // 设置医生的用户ID为新创建的用户ID
+                doctor.setUserId(user.getUserId());
+            } else if (doctor.getUserId() == null) {
+                // 既没有提供userId，也没有提供user对象
+                return Result.validateFailed("必须提供userId或user信息");
+            } else {
+                // 验证用户是否存在
+                User existingUser = userService.getUserById(doctor.getUserId());
+                if (existingUser == null) {
+                    return Result.error("指定的用户ID不存在");
+                }
+                
+                // 验证用户角色是否为医生
+                if (!ROLE_DOCTOR.equals(existingUser.getRoleType())) {
+                    // 自动更新用户角色为医生
+                    existingUser.setRoleType(ROLE_DOCTOR);
+                    userService.updateUser(existingUser);
+                }
+            }
+            
             // 设置创建时间
             doctor.setCreatedAt(new Date());
             
+            // 创建医生信息
             boolean result = doctorService.addDoctor(doctor);
             if (result) {
                 return Result.success("添加医生成功");

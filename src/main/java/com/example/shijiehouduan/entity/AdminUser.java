@@ -54,6 +54,11 @@ public class AdminUser implements Serializable {
     private Date createdAt;
     
     /**
+     * 关联的用户信息，用于同时创建user表记录
+     */
+    private User user;
+    
+    /**
      * 默认构造函数
      */
     public AdminUser() {
@@ -121,6 +126,14 @@ public class AdminUser implements Serializable {
 
     public void setCreatedAt(Date createdAt) {
         this.createdAt = createdAt;
+    }
+    
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
     }
 
     @Override

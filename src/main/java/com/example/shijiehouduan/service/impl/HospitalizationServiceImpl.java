@@ -79,11 +79,19 @@ public class HospitalizationServiceImpl implements HospitalizationService {
     @Override
     @Transactional
     public boolean updateHospitalization(Hospitalization hospitalization) {
-        // 如果修改了床位，需要更新床位状态
+        // 查询原住院记录信息
         Hospitalization originalHospitalization = hospitalizationDao.findById(hospitalization.getHospitalizationId());
-        if (originalHospitalization != null && 
-            !originalHospitalization.getBedId().equals(hospitalization.getBedId())) {
-            
+        if (originalHospitalization == null) {
+            return false;
+        }
+
+        // 如果未提供bedId，则使用原记录中的bedId
+        if (hospitalization.getBedId() == null) {
+            hospitalization.setBedId(originalHospitalization.getBedId());
+        }
+        
+        // 如果修改了床位，需要更新床位状态
+        if (!hospitalization.getBedId().equals(originalHospitalization.getBedId())) {
             // 原床位恢复为空闲状态
             Bed originalBed = bedDao.findById(originalHospitalization.getBedId());
             if (originalBed != null) {
@@ -96,13 +104,17 @@ public class HospitalizationServiceImpl implements HospitalizationService {
             Bed newBed = bedDao.findById(hospitalization.getBedId());
             if (newBed != null && "空闲".equals(newBed.getStatus())) {
                 newBed.setStatus("占用");
-                newBed.setCurrentPatientId(hospitalization.getPatientId());
+                newBed.setCurrentPatientId(originalHospitalization.getPatientId());
                 bedDao.update(newBed);
             } else {
                 // 如果新床位不存在或不是空闲状态，则不能更新住院记录
                 return false;
             }
         }
+        
+        // 确保patientId和创建时间不变
+        hospitalization.setPatientId(originalHospitalization.getPatientId());
+        hospitalization.setCreatedAt(originalHospitalization.getCreatedAt());
         
         return hospitalizationDao.update(hospitalization) > 0;
     }

@@ -23,6 +23,11 @@ public interface UserService {
      * 根据用户名查询用户
      */
     User getUserByUsername(String username);
+    
+    /**
+     * 检查用户名是否存在
+     */
+    boolean checkUsernameExists(String username);
 
     /**
      * 新增用户

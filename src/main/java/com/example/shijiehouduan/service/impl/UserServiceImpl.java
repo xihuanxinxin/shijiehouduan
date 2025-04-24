@@ -73,6 +73,11 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public boolean checkUsernameExists(String username) {
+        return userDao.findByUsername(username) != null;
+    }
+
+    @Override
     @Transactional
     public boolean addUser(User user) {
         // 检查用户名是否已存在
